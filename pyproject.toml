@@ -73,6 +73,7 @@ include = ["gitpulse*", "agent_runtime*"]
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers"
+pythonpath = ["."]
 testpaths = [
     "agent_runtime/tests",
     "backend/tests"
