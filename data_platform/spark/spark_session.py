@@ -1,13 +1,13 @@
 """Apache Spark Session Builder with S3/MinIO & Iceberg support."""
 
-from typing import Any, Dict
+from __future__ import annotations
 
 
 class SparkSessionBuilder:
     """Configures SparkSession with MinIO S3 endpoint and Apache Iceberg catalog."""
 
     @staticmethod
-    def get_spark_config() -> Dict[str, str]:
+    def get_spark_config() -> dict[str, str]:
         return {
             "spark.app.name": "GitPulse-Distributed-Engine",
             "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",

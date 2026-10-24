@@ -1,6 +1,7 @@
 """Airflow DAG: Hourly GitHub Event Stream Ingestion."""
 
 from datetime import datetime, timedelta
+
 # In real production Airflow deployment, import DAG, PythonOperator from airflow
 # We structure this DAG in idiomatic Airflow format
 
