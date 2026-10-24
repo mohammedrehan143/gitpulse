@@ -14,6 +14,7 @@ Autonomous MAS Workflow Active
 | **Milestone 3** | **Storage, Modeling & Analytics Serving** | Backend (Database, dbt, Airflow, API, Tests) | **DONE** | PostgreSQL declarative models, Alembic migrations, dbt marts, Airflow batch DAGs, FastAPI REST & WebSocket streaming server. |
 | **Milestone 4** | **Modern React Analytics Dashboard** | Frontend (UI/UX, Frontend, Charts, A11y, Tests) | **DONE** | React 18 / Vite SPA, commit velocity charts, metrics cards, WCAG 2.1 AA accessibility, Vitest client suites passing. |
 | **Milestone 5** | **End-to-End Operationalization & Ingestion CLI** | Ingestion, API, DevOps | **DONE** | Standalone ingestion CLI runner, real-time webhook routing, synthetic fallback mode, live WebSocket broadcasts. |
+| **Milestone 6** | **Automatic Discovery & Repository Monitoring** | Ingestion, Database, API, Frontend | **DONE** | Authenticated `GET /user/repos` pagination, owner-only filtering, private/public visibility, database synchronization, deleted repo tracking, FastAPI refresh endpoints, and React RepositoryList UI. |
 
 ---
 
@@ -41,7 +42,7 @@ Autonomous MAS Workflow Active
 
 - **Gate 1 (Static Analysis)**: Clean passes on `ruff check` and `black --check` across 47 Python files.
 - **Gate 2 (Automated Testing)**: 
-  - Backend: 29/29 Pytest tests passing (100% green).
-  - Frontend: 4/4 Vitest tests passing (100% green).
+  - Backend: 38/38 Pytest tests passing (100% green).
+  - Frontend: 6/6 Vitest tests passing (100% green).
 - **Gate 3 (Security Audit)**: Zero hardcoded secrets, zero high/critical vulnerabilities.
 - **Gate 4 (Independent Review)**: Strict adherence to file boundaries and domain handoffs.

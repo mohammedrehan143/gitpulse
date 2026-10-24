@@ -77,3 +77,32 @@ def test_websocket_repo_feed_subscription():
         assert data["type"] == "subscription_acknowledged"
         assert data["repository"] == "apache/spark"
         assert "metrics_update" in data["events"]
+
+
+@pytest.mark.asyncio
+async def test_list_discovered_repositories():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/api/v1/repos")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "total_count" in data
+        assert "auto_discover_enabled" in data
+        assert isinstance(data["repositories"], list)
+        if data["repositories"]:
+            repo = data["repositories"][0]
+            assert "full_name" in repo
+            assert "visibility" in repo
+            assert "monitoring_status" in repo
+
+
+@pytest.mark.asyncio
+async def test_refresh_discovered_repositories():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post("/api/v1/repos/refresh")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "SYNCHRONIZED"
+        assert "synced_count" in data
+        assert isinstance(data["repositories"], list)

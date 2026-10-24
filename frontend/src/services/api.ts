@@ -1,6 +1,24 @@
-import { VelocityResponse, EventsResponse } from '../types';
+import { VelocityResponse, EventsResponse, RepositoriesResponse, RefreshRepositoriesResponse } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
+
+export async function fetchDiscoveredRepositories(): Promise<RepositoriesResponse> {
+  const url = `${API_BASE_URL}/repos`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch repositories: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function refreshDiscoveredRepositories(): Promise<RefreshRepositoriesResponse> {
+  const url = `${API_BASE_URL}/repos/refresh`;
+  const res = await fetch(url, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`Failed to refresh repositories: ${res.statusText}`);
+  }
+  return res.json();
+}
 
 export async function fetchRepositoryVelocity(
   owner: string,

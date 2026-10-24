@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
@@ -10,6 +12,46 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.src.gitpulse.api.routes import router
 from backend.src.gitpulse.common.config import settings
+from backend.src.gitpulse.common.logging import logger
+from backend.src.gitpulse.services.repository_service import RepositoryService
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle manager for startup inventory sync and periodic discovery."""
+    logger.info("Initializing GitPulse repository inventory...")
+    repo_service = RepositoryService()
+    try:
+        await repo_service.sync_repositories()
+    except Exception as exc:
+        logger.warning("Initial repository sync encountered error: %s", exc)
+
+    periodic_task = None
+    if settings.AUTO_DISCOVER_REPOSITORIES and settings.REPO_DISCOVERY_INTERVAL_MINUTES > 0:
+
+        async def periodic_discovery():
+            interval_seconds = settings.REPO_DISCOVERY_INTERVAL_MINUTES * 60
+            while True:
+                try:
+                    await asyncio.sleep(interval_seconds)
+                    logger.info("Running periodic repository discovery refresh...")
+                    await repo_service.sync_repositories()
+                except asyncio.CancelledError:
+                    break
+                except Exception as exc:
+                    logger.error("Periodic repository discovery error: %s", exc)
+
+        periodic_task = asyncio.create_task(periodic_discovery())
+
+    yield
+
+    if periodic_task:
+        periodic_task.cancel()
+        try:
+            await periodic_task
+        except asyncio.CancelledError:
+            pass
+
 
 app = FastAPI(
     title="GitPulse Analytics API",
@@ -17,6 +59,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS Middleware

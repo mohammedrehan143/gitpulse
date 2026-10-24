@@ -20,9 +20,12 @@ from fastapi import (
 )
 
 from backend.src.gitpulse.api.schemas import (
+    DiscoveredRepositoryItem,
     EventItem,
     EventsResponse,
     HealthResponse,
+    RefreshRepositoriesResponse,
+    RepositoriesResponse,
     RepositoryRef,
     TimelinePoint,
     VelocityResponse,
@@ -30,6 +33,7 @@ from backend.src.gitpulse.api.schemas import (
 )
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
+from backend.src.gitpulse.services.repository_service import RepositoryService
 
 router = APIRouter(prefix="/api/v1", tags=["analytics"])
 
@@ -68,6 +72,42 @@ async def health_check() -> HealthResponse:
         status="HEALTHY",
         version="0.1.0",
         environment=settings.GITPULSE_ENV,
+    )
+
+
+@router.get("/repos", response_model=RepositoriesResponse)
+async def list_repositories() -> RepositoriesResponse:
+    """Lists all discovered repositories and their monitoring status."""
+    service = RepositoryService()
+    repos = await service.get_all_repositories()
+    items = []
+    for r in repos:
+        rc = dict(r)
+        if not rc.get("github_id"):
+            rc["github_id"] = rc.get("id") or 0
+        items.append(DiscoveredRepositoryItem(**rc))
+    return RepositoriesResponse(
+        total_count=len(items),
+        auto_discover_enabled=settings.AUTO_DISCOVER_REPOSITORIES,
+        repositories=items,
+    )
+
+
+@router.post("/repos/refresh", response_model=RefreshRepositoriesResponse)
+async def refresh_repositories() -> RefreshRepositoriesResponse:
+    """Triggers an on-demand synchronization and discovery of repositories."""
+    service = RepositoryService()
+    synced = await service.sync_repositories()
+    items = []
+    for r in synced:
+        rc = dict(r)
+        if not rc.get("github_id"):
+            rc["github_id"] = rc.get("id") or 0
+        items.append(DiscoveredRepositoryItem(**rc))
+    return RefreshRepositoriesResponse(
+        status="SYNCHRONIZED",
+        synced_count=len(items),
+        repositories=items,
     )
 
 

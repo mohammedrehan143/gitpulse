@@ -47,3 +47,35 @@ export interface EventsResponse {
   offset: number;
   events: EventItem[];
 }
+
+export interface DiscoveredRepository {
+  id: number;
+  github_id: number;
+  owner: string;
+  name: string;
+  full_name: string;
+  description: string | null;
+  visibility: string;
+  default_branch: string;
+  html_url: string | null;
+  pushed_at: string | null;
+  created_at: string | null;
+  is_active: boolean;
+  monitoring_status: string;
+  last_synced_at: string | null;
+  stars_count: number;
+  forks_count: number;
+}
+
+export interface RepositoriesResponse {
+  total_count: number;
+  auto_discover_enabled: boolean;
+  repositories: DiscoveredRepository[];
+}
+
+export interface RefreshRepositoriesResponse {
+  status: string;
+  synced_count: number;
+  repositories: DiscoveredRepository[];
+}
+

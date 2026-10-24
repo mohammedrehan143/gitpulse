@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,16 +23,32 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     PORT: int | None = None
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000", "*"]
+    CORS_ORIGINS: str | list[str] = ["http://localhost:5173", "http://localhost:3000", "*"]
+
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def parse_cors_origins(cls, v: Any) -> list[str]:
+        if isinstance(v, str):
+            if v.startswith("[") and v.endswith("]"):
+                import json
+
+                try:
+                    return json.loads(v)
+                except Exception:
+                    pass
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     @property
     def server_port(self) -> int:
         return self.PORT or self.API_PORT
 
-    # GitHub Ingestion
+    # GitHub Ingestion & Automatic Discovery
     GITHUB_TOKEN: str = ""
     GITHUB_API_BASE_URL: str = "https://api.github.com"
     GITHUB_RATE_LIMIT_BUFFER: int = 100
+    AUTO_DISCOVER_REPOSITORIES: bool = True
+    REPO_DISCOVERY_INTERVAL_MINUTES: int = 60
     GITHUB_TARGET_REPOS: str = "apache/spark,fastapi/fastapi,facebook/react"
 
     # PostgreSQL Relational Storage

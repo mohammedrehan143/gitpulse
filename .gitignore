@@ -35,6 +35,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# SQLite Databases
+*.db
+*.sqlite3
+*.sqlite
+gitpulse_dev.db
+
 # Node / Frontend
 node_modules/
 npm-debug.log*

@@ -128,6 +128,174 @@ class GitHubClient:
                 break
         return aggregated
 
+    async def get_authenticated_user(self) -> dict[str, Any] | None:
+        """Retrieves profile information for the authenticated GitHub token."""
+        if not self.token:
+            return None
+        url = f"{self.base_url}/user"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                resp = await client.get(url, headers=self._get_headers())
+                self._update_rate_limits(resp.headers)
+                if resp.status_code == 200:
+                    return resp.json()
+                elif resp.status_code == 401:
+                    logger.warning("GitHub token is invalid or lacks authentication scope.")
+                    return None
+                elif resp.status_code == 403:
+                    logger.warning("GitHub rate limit reached while fetching user profile.")
+                    return None
+                else:
+                    logger.error("GitHub API /user returned status %d", resp.status_code)
+                    return None
+            except httpx.RequestError as exc:
+                logger.error("Network error connecting to GitHub /user: %s", exc)
+                return None
+
+    @staticmethod
+    def _filter_and_normalize_repo(
+        r: dict[str, Any], auth_login: str | None
+    ) -> dict[str, Any] | None:
+        """Filters non-owned or org repos, and normalizes schema attributes."""
+        owner_info = r.get("owner", {})
+        owner_login = owner_info.get("login", "")
+        owner_type = owner_info.get("type", "User")
+
+        if auth_login and owner_login.lower() != auth_login.lower():
+            return None
+        if owner_type.lower() == "organization":
+            return None
+
+        vis = r.get("visibility")
+        if not vis:
+            vis = "private" if r.get("private") is True else "public"
+
+        return {
+            "id": r.get("id"),
+            "name": r.get("name"),
+            "full_name": r.get("full_name"),
+            "owner": owner_login,
+            "description": r.get("description"),
+            "visibility": vis,
+            "default_branch": r.get("default_branch") or "main",
+            "html_url": r.get("html_url"),
+            "created_at": r.get("created_at"),
+            "pushed_at": r.get("pushed_at"),
+            "stars_count": r.get("stargazers_count", 0),
+            "forks_count": r.get("forks_count", 0),
+            "is_active": True,
+            "monitoring_status": "DISCOVERED",
+        }
+
+    async def discover_owned_repositories(self) -> list[dict[str, Any]]:
+        """Discovers all public & private repositories owned by authenticated account."""
+        if (
+            self.rate_limit_remaining is not None
+            and self.rate_limit_remaining <= self.rate_limit_buffer
+        ) or not self.token:
+            return await self.fetch_synthetic_repositories()
+
+        user_info = await self.get_authenticated_user()
+        auth_login = user_info.get("login") if user_info else None
+
+        discovered: list[dict[str, Any]] = []
+        page = 1
+        per_page = 100
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            while page <= 50:
+                url = f"{self.base_url}/user/repos"
+                params = {
+                    "affiliation": "owner",
+                    "per_page": per_page,
+                    "page": page,
+                    "sort": "updated",
+                    "direction": "desc",
+                }
+                try:
+                    resp = await client.get(url, headers=self._get_headers(), params=params)
+                    self._update_rate_limits(resp.headers)
+                    if resp.status_code == 200:
+                        repos = resp.json()
+                        if not isinstance(repos, list) or not repos:
+                            break
+                        for r in repos:
+                            norm = self._filter_and_normalize_repo(r, auth_login)
+                            if norm:
+                                discovered.append(norm)
+                        if len(repos) < per_page:
+                            break
+                        page += 1
+                    elif resp.status_code in (401, 403):
+                        logger.warning(
+                            "GitHub auth or rate-limit status %d. Falling back to synthetic.",
+                            resp.status_code,
+                        )
+                        return await self.fetch_synthetic_repositories()
+                    else:
+                        logger.error(
+                            "GitHub API returned status %d for /user/repos", resp.status_code
+                        )
+                        break
+                except httpx.RequestError as exc:
+                    logger.error("Network error while connecting to GitHub /user/repos: %s", exc)
+                    return await self.fetch_synthetic_repositories()
+
+        return discovered
+
+    async def fetch_synthetic_repositories(self) -> list[dict[str, Any]]:
+        """Generates realistic synthetic repositories owned by the user for local simulation."""
+        return [
+            {
+                "id": 901201,
+                "name": "gitpulse",
+                "full_name": "gitpulse-admin/gitpulse",
+                "owner": "gitpulse-admin",
+                "description": "High-throughput GitHub Activity Analytics Platform",
+                "visibility": "public",
+                "default_branch": "main",
+                "html_url": "https://github.com/gitpulse-admin/gitpulse",
+                "created_at": "2026-01-15T10:00:00Z",
+                "pushed_at": "2026-10-24T22:00:00Z",
+                "stars_count": 142,
+                "forks_count": 28,
+                "is_active": True,
+                "monitoring_status": "POLLING",
+            },
+            {
+                "id": 901202,
+                "name": "private-analytics-pipeline",
+                "full_name": "gitpulse-admin/private-analytics-pipeline",
+                "owner": "gitpulse-admin",
+                "description": "Proprietary PySpark & dbt real-time aggregation models",
+                "visibility": "private",
+                "default_branch": "main",
+                "html_url": "https://github.com/gitpulse-admin/private-analytics-pipeline",
+                "created_at": "2026-03-20T14:30:00Z",
+                "pushed_at": "2026-10-24T21:15:00Z",
+                "stars_count": 3,
+                "forks_count": 0,
+                "is_active": True,
+                "monitoring_status": "POLLING",
+            },
+            {
+                "id": 901203,
+                "name": "developer-velocity-charts",
+                "full_name": "gitpulse-admin/developer-velocity-charts",
+                "owner": "gitpulse-admin",
+                "description": "Custom React 18 Canvas & SVG data visualization library",
+                "visibility": "public",
+                "default_branch": "main",
+                "html_url": "https://github.com/gitpulse-admin/developer-velocity-charts",
+                "created_at": "2026-05-10T09:00:00Z",
+                "pushed_at": "2026-10-24T20:45:00Z",
+                "stars_count": 56,
+                "forks_count": 9,
+                "is_active": True,
+                "monitoring_status": "POLLING",
+            },
+        ]
+
     async def fetch_synthetic_events(self, owner: str, repo: str) -> list[dict[str, Any]]:
         """Generates realistic synthetic GitHub events for hermetic local simulation."""
         return [

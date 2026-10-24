@@ -9,6 +9,7 @@ from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
 from backend.src.gitpulse.ingestion.github_client import GitHubClient
 from backend.src.gitpulse.ingestion.kafka_producer import KafkaEventProducer
+from backend.src.gitpulse.services.repository_service import RepositoryService
 
 
 async def ingest_repository_events(
@@ -98,19 +99,27 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    target_repos = (
-        [args.repo]
-        if args.repo
-        else [r.strip() for r in settings.GITHUB_TARGET_REPOS.split(",") if r.strip()]
-    )
+    async def resolve_and_ingest():
+        if args.repo:
+            target_repos = [args.repo]
+        else:
+            repo_service = RepositoryService()
+            target_repos = await repo_service.get_target_repo_names()
+            if not target_repos:
+                target_repos = [
+                    r.strip() for r in settings.GITHUB_TARGET_REPOS.split(",") if r.strip()
+                ]
 
-    results = asyncio.run(
-        ingest_repository_events(
+        logger.info(
+            "Executing ingestion over %d target repositories: %s", len(target_repos), target_repos
+        )
+        return await ingest_repository_events(
             repos=target_repos,
             max_pages=args.pages,
             publish_to_kafka=not args.no_kafka,
         )
-    )
+
+    results = asyncio.run(resolve_and_ingest())
 
     print("\n--- GitPulse Ingestion Summary ---")
     for r, count in results.items():

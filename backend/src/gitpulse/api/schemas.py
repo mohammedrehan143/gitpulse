@@ -59,3 +59,34 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     environment: str
+
+
+class DiscoveredRepositoryItem(BaseModel):
+    id: int
+    github_id: int | None = None
+    owner: str
+    name: str
+    full_name: str
+    description: str | None = None
+    visibility: str = "public"
+    default_branch: str = "main"
+    html_url: str | None = None
+    pushed_at: str | None = None
+    created_at: str | None = None
+    is_active: bool = True
+    monitoring_status: str = "DISCOVERED"
+    last_synced_at: str | None = None
+    stars_count: int = 0
+    forks_count: int = 0
+
+
+class RepositoriesResponse(BaseModel):
+    total_count: int
+    auto_discover_enabled: bool
+    repositories: list[DiscoveredRepositoryItem]
+
+
+class RefreshRepositoriesResponse(BaseModel):
+    status: str
+    synced_count: int
+    repositories: list[DiscoveredRepositoryItem]

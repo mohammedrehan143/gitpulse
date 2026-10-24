@@ -4,19 +4,61 @@ import { MetricsCard } from '../components/MetricsCard';
 import { CommitVelocityChart } from '../charts/CommitVelocityChart';
 import { ActivityChart } from '../charts/ActivityChart';
 import { RecentEventsTable } from '../components/RecentEventsTable';
+import { RepositoryList } from '../components/RepositoryList';
 import { useRepoMetrics } from '../hooks/useRepoMetrics';
-import { fetchRepositoryEvents } from '../services/api';
-import { EventItem } from '../types';
+import { fetchRepositoryEvents, fetchDiscoveredRepositories, refreshDiscoveredRepositories } from '../services/api';
+import { EventItem, DiscoveredRepository } from '../types';
 
 export const Dashboard: React.FC = () => {
-  const [selectedRepo] = useState<string>('apache/spark');
+  const [repositories, setRepositories] = useState<DiscoveredRepository[]>([]);
+  const [selectedRepo, setSelectedRepo] = useState<string>('apache/spark');
+  const [reposLoading, setReposLoading] = useState<boolean>(true);
+  const [repoError, setRepoError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
   const [events, setEvents] = useState<EventItem[]>([]);
   const [eventsLoading, setEventsLoading] = useState<boolean>(true);
 
-  const [owner, repo] = selectedRepo.split('/');
-  const { data: metrics, loading: metricsLoading, error } = useRepoMetrics(owner, repo);
+  // Load discovered repositories on mount
+  useEffect(() => {
+    fetchDiscoveredRepositories()
+      .then((res) => {
+        setRepositories(res.repositories);
+        if (res.repositories.length > 0) {
+          // Default to first active repository if available
+          const firstActive = res.repositories.find((r) => r.is_active) || res.repositories[0];
+          setSelectedRepo(firstActive.full_name);
+        }
+        setReposLoading(false);
+      })
+      .catch((err) => {
+        setRepoError(err.message || 'Failed to load discovered repositories');
+        setReposLoading(false);
+      });
+  }, []);
+
+  const handleRefreshRepositories = async () => {
+    setIsRefreshing(true);
+    setRepoError(null);
+    try {
+      const res = await refreshDiscoveredRepositories();
+      setRepositories(res.repositories);
+      if (res.repositories.length > 0 && !res.repositories.some((r) => r.full_name === selectedRepo)) {
+        setSelectedRepo(res.repositories[0].full_name);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to refresh repositories';
+      setRepoError(msg);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const [owner, repo] = selectedRepo.includes('/') ? selectedRepo.split('/') : ['apache', 'spark'];
+  const { data: metrics, loading: metricsLoading, error: metricsError } = useRepoMetrics(owner, repo);
 
   useEffect(() => {
+    setEventsLoading(true);
     fetchRepositoryEvents(owner, repo, 10)
       .then((res) => {
         setEvents(res.events);
@@ -29,7 +71,7 @@ export const Dashboard: React.FC = () => {
 
   return (
     <MainLayout currentRepo={selectedRepo}>
-      {error && (
+      {metricsError && (
         <div
           role="alert"
           style={{
@@ -40,9 +82,20 @@ export const Dashboard: React.FC = () => {
             marginBottom: '1.5rem',
           }}
         >
-          {error}
+          {metricsError}
         </div>
       )}
+
+      {/* Discovered & Monitored Repositories Management */}
+      <RepositoryList
+        repositories={repositories}
+        selectedRepo={selectedRepo}
+        onSelectRepo={(newRepo) => setSelectedRepo(newRepo)}
+        onRefresh={handleRefreshRepositories}
+        isRefreshing={isRefreshing}
+        isLoading={reposLoading}
+        error={repoError}
+      />
 
       {/* Top Velocity Metrics Cards */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>

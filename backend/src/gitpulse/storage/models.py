@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.src.gitpulse.storage.database import Base
@@ -19,6 +19,14 @@ class Repository(Base):
     owner: Mapped[str] = mapped_column(String(100), index=True)
     name: Mapped[str] = mapped_column(String(100), index=True)
     full_name: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    visibility: Mapped[str] = mapped_column(String(20), default="public")
+    default_branch: Mapped[str] = mapped_column(String(50), default="main")
+    html_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    pushed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    monitoring_status: Mapped[str] = mapped_column(String(30), default="DISCOVERED")
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     stars_count: Mapped[int] = mapped_column(Integer, default=0)
     forks_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(

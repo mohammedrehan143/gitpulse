@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchRepositoryVelocity, fetchRepositoryEvents, createRepoWebSocket } from '../src/services/api';
+import {
+  fetchRepositoryVelocity,
+  fetchRepositoryEvents,
+  createRepoWebSocket,
+  fetchDiscoveredRepositories,
+  refreshDiscoveredRepositories,
+} from '../src/services/api';
 
 describe('GitPulse Frontend Application & API Services', () => {
   it('validates test runner environment and module exports', () => {
@@ -50,4 +56,45 @@ describe('GitPulse Frontend Application & API Services', () => {
     // In headless Node.js without window.WebSocket, it safely returns null without crashing
     expect(ws === null || typeof ws === 'object').toBe(true);
   });
+
+  it('fetches discovered repositories via /repos endpoint', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        total_count: 2,
+        auto_discover_enabled: true,
+        repositories: [
+          { id: 1, full_name: 'user/repo-1', visibility: 'public', monitoring_status: 'POLLING' },
+          { id: 2, full_name: 'user/repo-2', visibility: 'private', monitoring_status: 'POLLING' },
+        ],
+      }),
+    });
+    global.fetch = mockFetch;
+
+    const res = await fetchDiscoveredRepositories();
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/repos'));
+    expect(res.total_count).toBe(2);
+    expect(res.repositories[1].visibility).toBe('private');
+  });
+
+  it('triggers manual repository refresh via POST /repos/refresh', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'SYNCHRONIZED',
+        synced_count: 3,
+        repositories: [],
+      }),
+    });
+    global.fetch = mockFetch;
+
+    const res = await refreshDiscoveredRepositories();
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/repos/refresh'),
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(res.status).toBe('SYNCHRONIZED');
+    expect(res.synced_count).toBe(3);
+  });
 });
+
