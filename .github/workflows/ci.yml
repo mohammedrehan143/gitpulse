@@ -34,13 +34,7 @@ jobs:
 
       - name: Quality Gate 2 - Automated Test Suites
         run: |
-          pytest agent_runtime/tests backend/tests -v || {
-            pytest agent_runtime/tests backend/tests -v --tb=short > pytest_failure.log 2>&1 || true
-            ERR_MSG=$(cat pytest_failure.log | tr '\n' ' ' | head -c 2000)
-            echo "::error title=PytestFailure::$ERR_MSG"
-            cat pytest_failure.log
-            exit 1
-          }
+          pytest agent_runtime/tests backend/tests -v
 
       - name: Quality Gate 3 - Secrets & Security Scan
         run: |
