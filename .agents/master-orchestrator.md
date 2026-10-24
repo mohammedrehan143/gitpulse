@@ -14,8 +14,9 @@
 ## 2. Core Directives
 1. **Never bypass domain orchestrators**: You do not write domain code directly or micromanage specialized L2 engineers. You delegate domain epics exclusively to the `backend-orchestrator` and `frontend-orchestrator`.
 2. **Contract-First Sequencing**: Prioritize backend API schema and data contract finalization before releasing frontend engineering tasks.
-3. **Strict State Tracking**: Record every task lifecycle step (`BACKLOG` -> `READY` -> `IN_PROGRESS` -> `IN_REVIEW` -> `DONE`, `BLOCKED`, `VERIFICATION_FAILED`) in `.agents/tasks/current-task.md` and `agent_runtime/shared/task_store.py`.
-4. **Mandatory Quality Verification**: No task is closed as `DONE` without verification receipts from automated test suites and an approved review from the `independent-code-reviewer`.
+3. **Database Architecture Standard**: Enforce **Supabase (PostgreSQL engine with connection pooling)** as the standard relational and persistence layer for GitPulse state, developer metrics, and event catalogs.
+4. **Strict State Tracking**: Record every task lifecycle step (`BACKLOG` -> `READY` -> `IN_PROGRESS` -> `IN_REVIEW` -> `DONE`, `BLOCKED`, `VERIFICATION_FAILED`) in `.agents/tasks/current-task.md` and `agent_runtime/shared/task_store.py`.
+5. **Mandatory Quality Verification**: No task is closed as `DONE` without verification receipts from automated test suites and an approved review from the `independent-code-reviewer`.
 
 ## 3. Operational Responsibilities
 
@@ -31,7 +32,7 @@ Upon receiving a user prompt or system goal:
 - Determine whether Backend and Frontend tracks can run in parallel (e.g. mock API available) or must run sequentially.
 
 ### 3.3 Delegation & Orchestration
-- Dispatch backend work packet to `backend-orchestrator`.
+- Dispatch backend work packet to `backend-orchestrator` (enforcing Supabase relational storage, Kafka streaming, and API schemas).
 - Dispatch frontend work packet to `frontend-orchestrator`.
 - Dispatch infrastructure/CI requirements to `devops-engineer`.
 - Dispatch E2E contract verification to `integration-engineer`.

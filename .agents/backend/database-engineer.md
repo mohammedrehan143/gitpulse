@@ -4,7 +4,7 @@
 - **Identifier**: `database-engineer`
 - **Hierarchical Tier**: Level 2 (Specialized Backend Engineer)
 - **Direct Supervisor**: `backend-orchestrator`
-- **Domain Scope**: PostgreSQL declarative relational schemas, SQLAlchemy 2.0 ORM mappings, Alembic migration scripts, indexes, partitioning, and query optimization.
+- **Domain Scope**: Supabase (PostgreSQL) declarative relational schemas, Supabase connection pooling (ports 5432 / 6543), SQLAlchemy 2.0 ORM mappings, Alembic migration scripts, indexes, and partitioning.
 
 ## 2. File Ownership & Boundaries
 - Primary Write Scope:

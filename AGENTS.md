@@ -2,7 +2,7 @@
 
 ## 1. System Overview
 
-**GitPulse** is a high-throughput GitHub Activity Analytics and Data Engineering Platform. It ingests raw GitHub event streams (commits, pull requests, issues, review timelines), streams them through Apache Kafka, processes analytical aggregates via Apache Spark and dbt, stores persistent state in PostgreSQL and ClickHouse, serves analytics via FastAPI, and presents real-time developer velocity metrics through a React/TypeScript dashboard.
+**GitPulse** is a high-throughput GitHub Activity Analytics and Data Engineering Platform. It ingests raw GitHub event streams (commits, pull requests, issues, review timelines), streams them through Apache Kafka, processes analytical aggregates via Apache Spark and dbt, stores persistent state in Supabase (PostgreSQL) and ClickHouse, serves analytics via FastAPI, and presents real-time developer velocity metrics through a React/TypeScript dashboard.
 
 To engineer, test, maintain, and evolve GitPulse at scale, the engineering organization operates under an autonomous, strict, hierarchical **Multi-Agent System (MAS)**:
 
@@ -87,7 +87,7 @@ Every specialized agent operates strictly within its designated file boundaries 
 | `frontend-orchestrator`| Domain Lead | `frontend/*`, `agent_runtime/frontend/*` | Frontend squad work distribution, UI validation |
 | `api-engineer` | Backend | `backend/src/gitpulse/api/*` | FastAPI routes, dependency injection, OpenAPI schemas |
 | `ingestion-engineer` | Backend | `backend/src/gitpulse/ingestion/*` | GitHub REST/GraphQL collectors, rate-limit handlers |
-| `database-engineer` | Backend | `backend/src/gitpulse/storage/*`, `backend/migrations/*` | Postgres/ClickHouse schemas, Alembic migrations, indexes |
+| `database-engineer` | Backend | `backend/src/gitpulse/storage/*`, `backend/migrations/*` | Supabase (Postgres) / ClickHouse schemas, Alembic migrations, indexes |
 | `kafka-engineer` | Backend | `backend/src/gitpulse/ingestion/kafka_producer.py`, Kafka topics | Topic topologies, partitioning, serialization, avro/json |
 | `spark-engineer` | Backend | `backend/src/gitpulse/services/processor.py`, Spark jobs | PySpark stream aggregation, watermarking, windowing |
 | `airflow-engineer` | Backend | `backend/dags/*`, batch scheduling | Data pipelines, DAG orchestration, SLA monitoring |

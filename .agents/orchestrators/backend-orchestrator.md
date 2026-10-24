@@ -7,7 +7,7 @@
 - **Direct Reports**:
   - `api-engineer` (FastAPI endpoints, OpenAPI schemas)
   - `ingestion-engineer` (GitHub REST/GraphQL crawlers, rate limiting)
-  - `database-engineer` (PostgreSQL schemas, Alembic migrations)
+  - `database-engineer` (Supabase / PostgreSQL schemas, Alembic migrations)
   - `kafka-engineer` (Topics, partitions, producers, consumer groups)
   - `spark-engineer` (PySpark streaming, aggregations, windowing)
   - `airflow-engineer` (DAG orchestration, batch scheduling)
