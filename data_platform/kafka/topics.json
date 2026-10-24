@@ -1,0 +1,35 @@
+{
+  "topics": [
+    {
+      "name": "gitpulse.github.raw_events",
+      "partitions": 6,
+      "replication_factor": 1,
+      "cleanup_policy": "delete",
+      "retention_ms": 604800000,
+      "description": "Inbound raw GitHub event stream from webhook and polling crawlers"
+    },
+    {
+      "name": "gitpulse.github.commits",
+      "partitions": 6,
+      "replication_factor": 1,
+      "cleanup_policy": "delete",
+      "retention_ms": 2592000000,
+      "description": "Normalized commit logs partitioned by repository name"
+    },
+    {
+      "name": "gitpulse.github.pull_requests",
+      "partitions": 6,
+      "replication_factor": 1,
+      "cleanup_policy": "delete",
+      "retention_ms": 2592000000,
+      "description": "PR state transitions, review events, and turnaround markers"
+    },
+    {
+      "name": "gitpulse.analytics.metrics",
+      "partitions": 3,
+      "replication_factor": 1,
+      "cleanup_policy": "compact",
+      "description": "Aggregated developer velocity and repository health scores"
+    }
+  ]
+}

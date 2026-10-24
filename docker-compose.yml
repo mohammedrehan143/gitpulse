@@ -1,0 +1,175 @@
+version: "3.8"
+
+networks:
+  gitpulse-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  kafka_data:
+  prometheus_data:
+  grafana_data:
+
+services:
+  # ----------------------------------------------------------------------------
+  # Relational Database: PostgreSQL 16
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: gitpulse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gitpulse
+      POSTGRES_USER: gitpulse_admin
+      POSTGRES_PASSWORD: gitpulse_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - gitpulse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitpulse_admin -d gitpulse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # Streaming Engine: Apache Kafka (KRaft mode, no Zookeeper required)
+  # ----------------------------------------------------------------------------
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: gitpulse-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+    networks:
+      - gitpulse-network
+
+  # ----------------------------------------------------------------------------
+  # Lakehouse Storage: MinIO (S3 Compatible Object Storage)
+  # ----------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2024-03-05T04-48-44Z
+    container_name: gitpulse-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    networks:
+      - gitpulse-network
+
+  # ----------------------------------------------------------------------------
+  # Caching and Ephemeral Broker: Redis
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: gitpulse-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - gitpulse-network
+
+  # ----------------------------------------------------------------------------
+  # Observability: Prometheus & Grafana
+  # ----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: gitpulse-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - gitpulse-network
+
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: gitpulse-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./infra/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./infra/grafana/gitpulse_dashboard.json:/var/lib/grafana/dashboards/gitpulse_dashboard.json:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - gitpulse-network
+    depends_on:
+      - prometheus
+
+  # ----------------------------------------------------------------------------
+  # Backend API & Ingestion Engine (FastAPI)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+    container_name: gitpulse-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=gitpulse
+      - POSTGRES_USER=gitpulse_admin
+      - POSTGRES_PASSWORD=gitpulse_secure_password
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - gitpulse-network
+
+  # ----------------------------------------------------------------------------
+  # Frontend Application (React + Vite)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend
+    container_name: gitpulse-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    networks:
+      - gitpulse-network

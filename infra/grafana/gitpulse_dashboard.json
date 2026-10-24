@@ -1,0 +1,30 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Ingested GitHub Events / sec",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Kafka Ingestion Latency (p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "title": "FastAPI HTTP Response Code Distribution",
+      "type": "piechart",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "title": "GitPulse Operational Telemetry",
+  "uid": "gitpulse-ops-01"
+}

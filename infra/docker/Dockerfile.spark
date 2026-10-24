@@ -1,0 +1,12 @@
+# PySpark Processing Container for GitPulse Stream & Batch Aggregation
+FROM apache/spark:3.5.0-python3
+
+USER root
+
+RUN pip install --no-cache-dir \
+    pyiceberg \
+    pyarrow \
+    kafka-python \
+    boto3
+
+USER 185

@@ -1,0 +1,96 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Node / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Testing and coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+htmlcov/
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-results/
+
+# Agent Runtime State and Checkpoints
+agent_runtime/.state_checkpoints/
+agent_runtime/.telemetry_logs/
+agent_runtime/runs/
+*.sqlite3-journal
+
+# Data platform local caches and artifacts
+data_platform/storage/local_lake/
+data_platform/airflow/logs/
+data_platform/dbt/target/
+data_platform/dbt/dbt_packages/
+metastore_db/
+derby.log
+warehouse/
+
+# Logs
+logs/
+*.log
+
+# Docker local mounts
+.docker-data/

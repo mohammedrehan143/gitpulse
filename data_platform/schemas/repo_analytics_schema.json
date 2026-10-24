@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RepoAnalyticsSchema",
+  "type": "object",
+  "required": ["repo_id", "date", "total_commits", "active_contributors", "churn_rate"],
+  "properties": {
+    "repo_id": { "type": "integer" },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "total_commits": { "type": "integer", "minimum": 0 },
+    "active_contributors": { "type": "integer", "minimum": 0 },
+    "avg_pr_cycle_time_hours": { "type": "number", "minimum": 0.0 },
+    "churn_rate": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+  }
+}
