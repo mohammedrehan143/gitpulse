@@ -10,6 +10,8 @@ jobs:
   agent-runtime-tests:
     name: Agent Runtime & Governance Tests
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

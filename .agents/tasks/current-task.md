@@ -47,9 +47,12 @@
 - **File Scope**:
   - `agent_runtime/**/*`
   - `backend/**/*`
+  - `.github/workflows/ci.yml`
+  - `pyproject.toml`
 - **Acceptance Criteria**:
   - Resolve all 205 ruff errors cleanly without disabling rules or adding `# noqa`.
   - Format with `black` (100 character line limit).
+  - Configure CI environment with `PYTHONPATH: .` for seamless module discovery across test suites.
   - All test suites (Pytest and Vite build) passing.
 - **Verification**:
   - `ruff check agent_runtime backend` returns 0 errors.
