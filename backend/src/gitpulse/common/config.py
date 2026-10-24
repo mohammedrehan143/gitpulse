@@ -20,7 +20,12 @@ class Settings(BaseSettings):
     # API Server
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    PORT: int | None = None
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "*"]
+
+    @property
+    def server_port(self) -> int:
+        return self.PORT or self.API_PORT
 
     # GitHub Ingestion
     GITHUB_TOKEN: str = ""

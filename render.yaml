@@ -1,0 +1,25 @@
+services:
+  # ----------------------------------------------------------------------------
+  # Render Web Service: GitPulse FastAPI Backend
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: gitpulse-api
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && pip install -e ."
+    startCommand: "uvicorn backend.src.gitpulse.api.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: GITPULSE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: GITHUB_API_BASE_URL
+        value: https://api.github.com
+      - key: GITHUB_RATE_LIMIT_BUFFER
+        value: 100
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./gitpulse.db
+      - key: CORS_ORIGINS
+        value: "*"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,11 +32,12 @@ app.include_router(router)
 
 def start() -> None:
     """Entry point to launch the uvicorn server."""
+    port = int(os.environ.get("PORT", str(settings.server_port)))
     uvicorn.run(
         "backend.src.gitpulse.api.main:app",
-        host=settings.API_HOST,
-        port=settings.API_PORT,
-        reload=True,
+        host="0.0.0.0",
+        port=port,
+        reload=settings.GITPULSE_ENV == "development",
     )
 
 
