@@ -34,7 +34,13 @@ jobs:
 
       - name: Quality Gate 2 - Automated Test Suites
         run: |
-          pytest agent_runtime/tests backend/tests -v
+          pytest agent_runtime/tests backend/tests -v || {
+            echo "### Pytest Failure Log" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            pytest agent_runtime/tests backend/tests -vv --tb=long >> $GITHUB_STEP_SUMMARY 2>&1 || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Quality Gate 3 - Secrets & Security Scan
         run: |
