@@ -35,10 +35,10 @@ jobs:
       - name: Quality Gate 2 - Automated Test Suites
         run: |
           pytest agent_runtime/tests backend/tests -v || {
-            echo "### Pytest Failure Log" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            pytest agent_runtime/tests backend/tests -vv --tb=long >> $GITHUB_STEP_SUMMARY 2>&1 || true
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            pytest agent_runtime/tests backend/tests -v --tb=short > pytest_failure.log 2>&1 || true
+            ERR_MSG=$(cat pytest_failure.log | tr '\n' ' ' | head -c 2000)
+            echo "::error title=PytestFailure::$ERR_MSG"
+            cat pytest_failure.log
             exit 1
           }
 
