@@ -51,15 +51,8 @@ class Settings(BaseSettings):
     REPO_DISCOVERY_INTERVAL_MINUTES: int = 60
     GITHUB_TARGET_REPOS: str = "apache/spark,fastapi/fastapi,facebook/react"
 
-    # Supabase / PostgreSQL Relational Storage
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "gitpulse"
-    POSTGRES_USER: str = "gitpulse_admin"
-    POSTGRES_PASSWORD: str = "gitpulse_secure_password"
+    # Supabase Relational Database & Cloud Storage
     DATABASE_URL: str = "sqlite+aiosqlite:///./gitpulse_dev.db"
-
-    # Supabase Cloud Configuration
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
