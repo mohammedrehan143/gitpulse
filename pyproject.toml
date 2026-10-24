@@ -68,8 +68,8 @@ gitpulse-agent = "agent_runtime.main:cli"
 gitpulse-api = "backend.src.gitpulse.api.main:start"
 
 [tool.setuptools.packages.find]
-where = ["backend/src", "."]
-include = ["gitpulse*", "agent_runtime*"]
+where = ["."]
+include = ["backend*", "agent_runtime*"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
