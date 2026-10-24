@@ -6,6 +6,7 @@ import pytest
 
 from backend.src.gitpulse.ingestion.github_client import GitHubClient
 from backend.src.gitpulse.ingestion.kafka_producer import KafkaEventProducer
+from backend.src.gitpulse.ingestion.runner import ingest_repository_events
 from backend.src.gitpulse.services.analytics import AnalyticsService
 from backend.src.gitpulse.services.processor import StreamProcessor
 from data_platform.spark.batch_aggregator import SparkBatchAggregator
@@ -185,3 +186,19 @@ def test_storage_connectors():
     upload_receipt = client.upload_parquet_table("raw_events", part_path, data=None)
     assert upload_receipt["status"] == "UPLOADED"
     assert "apache_spark" in upload_receipt["key"]
+
+
+@pytest.mark.asyncio
+async def test_ingest_repository_events_runner(monkeypatch):
+    # Test runner execution with synthetic/mock data
+    async def mock_fetch_all(self, owner, repo, max_pages=3, per_page=30):
+        return await self.fetch_synthetic_events(owner, repo)
+
+    monkeypatch.setattr(GitHubClient, "fetch_all_recent_events", mock_fetch_all)
+
+    res = await ingest_repository_events(
+        repos=["test-owner/test-repo", "invalid_repo"], max_pages=1
+    )
+    assert "test-owner/test-repo" in res
+    assert res["test-owner/test-repo"] >= 2
+    assert "invalid_repo" not in res
