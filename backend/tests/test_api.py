@@ -2,6 +2,7 @@
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from backend.src.gitpulse.api.main import app
 
 
@@ -20,7 +21,9 @@ async def test_health_check_endpoint():
 async def test_get_repository_velocity():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/v1/repos/apache/spark/velocity?timeframe=30d&granularity=day")
+        response = await client.get(
+            "/api/v1/repos/apache/spark/velocity?timeframe=30d&granularity=day"
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["repository"]["full_name"] == "apache/spark"

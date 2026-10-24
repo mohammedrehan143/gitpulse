@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class TestTools:
@@ -15,10 +15,10 @@ class TestTools:
 
     __test__ = False
 
-    def __init__(self, workspace_root: Optional[Path] = None):
+    def __init__(self, workspace_root: Path | None = None):
         self.workspace_root = Path(workspace_root or ".").resolve()
 
-    def run_command(self, cmd: List[str]) -> Dict[str, Any]:
+    def run_command(self, cmd: list[str]) -> dict[str, Any]:
         """Runs a subprocess command within workspace root."""
         res = subprocess.run(
             cmd,
@@ -39,7 +39,7 @@ class TestTools:
         self,
         test_path: str = "agent_runtime/tests",
         coverage: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Executes pytest test suite."""
         # Guard against recursive invocation when invoked from inside a running pytest session
         if "PYTEST_CURRENT_TEST" in os.environ:
@@ -55,7 +55,7 @@ class TestTools:
             cmd.extend(["--cov=agent_runtime", "--cov-report=term-missing"])
         return self.run_command(cmd)
 
-    def scan_for_secrets(self, paths: Optional[List[str]] = None) -> Dict[str, Any]:
+    def scan_for_secrets(self, paths: list[str] | None = None) -> dict[str, Any]:
         """Scans code files for accidental secret leakage."""
         secret_patterns = [
             (r"(?i)ghp_[a-zA-Z0-9]{36}", "GitHub Personal Access Token"),
@@ -72,7 +72,13 @@ class TestTools:
             if not p.exists():
                 continue
             for file_path in p.rglob("*"):
-                if file_path.is_file() and file_path.suffix in (".py", ".ts", ".tsx", ".json", ".yml"):
+                if file_path.is_file() and file_path.suffix in (
+                    ".py",
+                    ".ts",
+                    ".tsx",
+                    ".json",
+                    ".yml",
+                ):
                     # Skip sample env files or documentation templates
                     if ".env.example" in file_path.name or "test" in file_path.name:
                         continue
@@ -81,11 +87,13 @@ class TestTools:
                         for pattern, desc in secret_patterns:
                             matches = re.findall(pattern, content)
                             if matches:
-                                violations.append({
-                                    "file": str(file_path.relative_to(self.workspace_root)),
-                                    "pattern_description": desc,
-                                    "matches_count": len(matches),
-                                })
+                                violations.append(
+                                    {
+                                        "file": str(file_path.relative_to(self.workspace_root)),
+                                        "pattern_description": desc,
+                                        "matches_count": len(matches),
+                                    }
+                                )
                     except Exception:
                         continue
 
@@ -95,7 +103,7 @@ class TestTools:
             "violations": violations,
         }
 
-    def evaluate_quality_gates(self, test_path: str = "agent_runtime/tests") -> Dict[str, Any]:
+    def evaluate_quality_gates(self, test_path: str = "agent_runtime/tests") -> dict[str, Any]:
         """Runs automated evaluation of Quality Gates 1, 2, 3."""
         # Gate 2: Tests
         test_res = self.run_pytest(test_path=test_path)
@@ -104,9 +112,9 @@ class TestTools:
         sec_res = self.scan_for_secrets()
 
         # Gate 1: Check syntax compilation
-        compile_res = self.run_command([
-            sys.executable, "-m", "compileall", "-q", "agent_runtime", "backend"
-        ])
+        compile_res = self.run_command(
+            [sys.executable, "-m", "compileall", "-q", "agent_runtime", "backend"]
+        )
 
         gates_passed = test_res["success"] and sec_res["passed"] and compile_res["success"]
 

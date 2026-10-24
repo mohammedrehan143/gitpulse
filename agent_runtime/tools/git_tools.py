@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class GitTools:
     """Tooling interface for git inspections and version control operations."""
 
-    def __init__(self, workspace_root: Optional[Path] = None):
+    def __init__(self, workspace_root: Path | None = None):
         self.workspace_root = Path(workspace_root or ".").resolve()
 
-    def _run_git(self, args: List[str]) -> subprocess.CompletedProcess[str]:
+    def _run_git(self, args: list[str]) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["git"] + args,
             cwd=str(self.workspace_root),
@@ -22,7 +22,7 @@ class GitTools:
             check=False,
         )
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Returns untracked, modified, and staged files."""
         res = self._run_git(["status", "--porcelain"])
         if res.returncode != 0:

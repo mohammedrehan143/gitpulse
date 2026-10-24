@@ -6,14 +6,15 @@ Maintains formal task records, execution states, and the 9-point handoff contrac
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
-class TaskState(str, Enum):
+class TaskState(StrEnum):
     BACKLOG = "BACKLOG"
     READY = "READY"
     IN_PROGRESS = "IN_PROGRESS"
@@ -24,7 +25,7 @@ class TaskState(str, Enum):
 
 
 # Legal transitions matrix
-VALID_TRANSITIONS: Dict[TaskState, List[TaskState]] = {
+VALID_TRANSITIONS: dict[TaskState, list[TaskState]] = {
     TaskState.BACKLOG: [TaskState.READY, TaskState.BLOCKED],
     TaskState.READY: [TaskState.IN_PROGRESS, TaskState.BLOCKED],
     TaskState.IN_PROGRESS: [TaskState.IN_REVIEW, TaskState.BLOCKED, TaskState.VERIFICATION_FAILED],
@@ -37,29 +38,35 @@ VALID_TRANSITIONS: Dict[TaskState, List[TaskState]] = {
 
 class HandoffContract(BaseModel):
     """The mandatory 9-point handoff contract between agents."""
+
     task_id: str = Field(..., description="Unique task identifier")
     objective: str = Field(..., description="Target objective")
-    scope_and_ownership: List[str] = Field(..., description="Allowed file scope")
-    context_and_docs: List[str] = Field(default_factory=list, description="Relevant documentation")
-    dependencies: List[str] = Field(default_factory=list, description="Upstream dependencies")
-    acceptance_criteria: List[str] = Field(..., description="Testable acceptance criteria")
-    files_changed: List[str] = Field(default_factory=list, description="Manifest of modified files")
-    tests_and_results: Dict[str, Any] = Field(default_factory=dict, description="Test output and coverage")
-    blockers_and_risks: List[str] = Field(default_factory=list, description="Identified risks and blockers")
+    scope_and_ownership: list[str] = Field(..., description="Allowed file scope")
+    context_and_docs: list[str] = Field(default_factory=list, description="Relevant documentation")
+    dependencies: list[str] = Field(default_factory=list, description="Upstream dependencies")
+    acceptance_criteria: list[str] = Field(..., description="Testable acceptance criteria")
+    files_changed: list[str] = Field(default_factory=list, description="Manifest of modified files")
+    tests_and_results: dict[str, Any] = Field(
+        default_factory=dict, description="Test output and coverage"
+    )
+    blockers_and_risks: list[str] = Field(
+        default_factory=list, description="Identified risks and blockers"
+    )
     next_step: str = Field(..., description="Recommended next action or agent handoff")
 
 
 class TaskRecord(BaseModel):
     """Full task record stored in the task store."""
+
     id: str
     title: str
     description: str
     assigned_agent: str
     state: TaskState = TaskState.BACKLOG
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    handoffs: List[HandoffContract] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    handoffs: list[HandoffContract] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     retry_count: int = 0
     max_retries: int = 3
 
@@ -67,18 +74,18 @@ class TaskRecord(BaseModel):
 class TaskStore:
     """Persistent storage engine for multi-agent tasks."""
 
-    def __init__(self, storage_path: Optional[Path] = None):
+    def __init__(self, storage_path: Path | None = None):
         if storage_path is None:
             storage_path = Path("agent_runtime/.state_checkpoints/task_store.json")
         self.storage_path = Path(storage_path)
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-        self._tasks: Dict[str, TaskRecord] = {}
+        self._tasks: dict[str, TaskRecord] = {}
         self._load()
 
     def _load(self) -> None:
         if self.storage_path.exists():
             try:
-                with open(self.storage_path, "r", encoding="utf-8") as f:
+                with open(self.storage_path, encoding="utf-8") as f:
                     data = json.load(f)
                     for item in data.values():
                         task = TaskRecord(**item)
@@ -98,7 +105,7 @@ class TaskStore:
         description: str,
         assigned_agent: str,
         initial_state: TaskState = TaskState.BACKLOG,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> TaskRecord:
         """Create a new task in the store."""
         task = TaskRecord(
@@ -113,10 +120,10 @@ class TaskStore:
         self._save()
         return task
 
-    def get_task(self, task_id: str) -> Optional[TaskRecord]:
+    def get_task(self, task_id: str) -> TaskRecord | None:
         return self._tasks.get(task_id)
 
-    def list_tasks(self, state: Optional[TaskState] = None) -> List[TaskRecord]:
+    def list_tasks(self, state: TaskState | None = None) -> list[TaskRecord]:
         if state:
             return [t for t in self._tasks.values() if t.state == state]
         return list(self._tasks.values())
@@ -143,7 +150,7 @@ class TaskStore:
                 task.metadata["blocked_reason"] = "Exceeded maximum retry attempts"
 
         task.state = new_state
-        task.updated_at = datetime.now(timezone.utc).isoformat()
+        task.updated_at = datetime.now(UTC).isoformat()
         self._save()
         return task
 
@@ -153,6 +160,6 @@ class TaskStore:
         if not task:
             raise KeyError(f"Task {task_id} not found in store")
         task.handoffs.append(handoff)
-        task.updated_at = datetime.now(timezone.utc).isoformat()
+        task.updated_at = datetime.now(UTC).isoformat()
         self._save()
         return task

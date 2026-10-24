@@ -1,8 +1,6 @@
 """SQLAlchemy declarative model tests."""
 
-from datetime import datetime, timezone
 from backend.src.gitpulse.storage.models import (
-    CommitRecord,
     DeveloperMetric,
     GitHubEvent,
     Repository,

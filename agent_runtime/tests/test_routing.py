@@ -5,10 +5,22 @@ from agent_runtime.master.router import TaskRouter
 
 def test_classify_task_types():
     assert TaskRouter.classify_task_type("Fix 500 error on commit ingestion") == "BUG"
-    assert TaskRouter.classify_task_type("Update docker compose configuration for Kafka KRaft") == "INFRASTRUCTURE"
-    assert TaskRouter.classify_task_type("Refactor storage layer to use connection pooling") == "REFACTOR"
-    assert TaskRouter.classify_task_type("Verify E2E contract between backend and dashboard") == "INTEGRATION"
-    assert TaskRouter.classify_task_type("Add repository developer velocity analytics dashboard") == "FEATURE"
+    assert (
+        TaskRouter.classify_task_type("Update docker compose configuration for Kafka KRaft")
+        == "INFRASTRUCTURE"
+    )
+    assert (
+        TaskRouter.classify_task_type("Refactor storage layer to use connection pooling")
+        == "REFACTOR"
+    )
+    assert (
+        TaskRouter.classify_task_type("Verify E2E contract between backend and dashboard")
+        == "INTEGRATION"
+    )
+    assert (
+        TaskRouter.classify_task_type("Add repository developer velocity analytics dashboard")
+        == "FEATURE"
+    )
 
 
 def test_decompose_feature_generates_backend_frontend_and_contract():

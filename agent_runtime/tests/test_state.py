@@ -1,10 +1,11 @@
 """Tests for TaskStore, TaskState transitions, and HandoffContracts."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from agent_runtime.shared.task_store import (
     HandoffContract,
-    TaskRecord,
     TaskState,
     TaskStore,
 )

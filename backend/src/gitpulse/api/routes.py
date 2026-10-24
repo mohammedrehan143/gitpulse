@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import hmac
 import hashlib
-from typing import Optional
+import hmac
+
 from fastapi import APIRouter, Header, HTTPException, Query, Request, status
+
 from backend.src.gitpulse.api.schemas import (
     EventItem,
     EventsResponse,
@@ -82,7 +83,7 @@ async def get_repository_events(
     repo: str,
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    event_type: Optional[str] = None,
+    event_type: str | None = None,
 ) -> EventsResponse:
     """Retrieves paginated event stream for a repository."""
     events = [
@@ -117,7 +118,7 @@ async def get_repository_events(
 @router.post("/webhooks/github", status_code=status.HTTP_202_ACCEPTED)
 async def handle_github_webhook(
     request: Request,
-    x_hub_signature_256: Optional[str] = Header(None),
+    x_hub_signature_256: str | None = Header(None),
 ) -> dict:
     """Receives and verifies GitHub webhook payloads with HMAC SHA-256."""
     payload_body = await request.body()

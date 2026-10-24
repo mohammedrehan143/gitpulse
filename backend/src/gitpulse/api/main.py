@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from backend.src.gitpulse.api.routes import router
 from backend.src.gitpulse.common.config import settings
 

@@ -6,7 +6,6 @@ and audit execution telemetry.
 
 from __future__ import annotations
 
-import sys
 import click
 from rich.console import Console
 from rich.panel import Panel
@@ -31,7 +30,12 @@ def cli() -> None:
 @click.option("--epic-id", "-e", default=None, help="Optional custom Epic ID")
 def run(task: str, epic_id: str | None) -> None:
     """Execute a task through the Master Orchestrator hierarchy."""
-    console.print(Panel(f"[bold cyan]Submitting Task to Master Orchestrator:[/bold cyan]\n{task}", title="GitPulse MAS"))
+    console.print(
+        Panel(
+            f"[bold cyan]Submitting Task to Master Orchestrator:[/bold cyan]\n{task}",
+            title="GitPulse MAS",
+        )
+    )
 
     orchestrator = MasterGraphOrchestrator()
     result = orchestrator.run_epic(prompt=task, epic_id=epic_id)
@@ -42,9 +46,22 @@ def run(task: str, epic_id: str | None) -> None:
 
     table.add_row("Epic ID", result.epic_id)
     table.add_row("Task Type", result.task_type)
-    table.add_row("Final State", f"[bold green]{result.state.value}[/bold green]" if result.state.value == "DONE" else f"[bold red]{result.state.value}[/bold red]")
-    table.add_row("Quality Gates", "[green]PASSED[/green]" if result.quality_gates_passed else "[red]FAILED[/red]")
-    table.add_row("Independent Review", "[green]APPROVED[/green]" if result.review_approved else "[yellow]PENDING[/yellow]")
+    table.add_row(
+        "Final State",
+        (
+            f"[bold green]{result.state.value}[/bold green]"
+            if result.state.value == "DONE"
+            else f"[bold red]{result.state.value}[/bold red]"
+        ),
+    )
+    table.add_row(
+        "Quality Gates",
+        "[green]PASSED[/green]" if result.quality_gates_passed else "[red]FAILED[/red]",
+    )
+    table.add_row(
+        "Independent Review",
+        "[green]APPROVED[/green]" if result.review_approved else "[yellow]PENDING[/yellow]",
+    )
     table.add_row("Subtasks Executed", str(len(result.subtasks)))
 
     console.print(table)
@@ -68,8 +85,18 @@ def status() -> None:
     table.add_column("Updated At")
 
     for t in tasks:
-        state_color = "green" if t.state.value == "DONE" else ("yellow" if t.state.value == "IN_PROGRESS" else "red")
-        table.add_row(t.id, f"[{state_color}]{t.state.value}[/{state_color}]", t.assigned_agent, t.title[:40], t.updated_at[:19])
+        state_color = (
+            "green"
+            if t.state.value == "DONE"
+            else ("yellow" if t.state.value == "IN_PROGRESS" else "red")
+        )
+        table.add_row(
+            t.id,
+            f"[{state_color}]{t.state.value}[/{state_color}]",
+            t.assigned_agent,
+            t.title[:40],
+            t.updated_at[:19],
+        )
 
     console.print(table)
 
@@ -88,12 +115,20 @@ def gates() -> None:
 
     table.add_row(
         "Gate 1: Static Analysis / Compilation",
-        "[green]PASS[/green]" if eval_res["gate_1_syntax_compilation"]["passed"] else "[red]FAIL[/red]",
+        (
+            "[green]PASS[/green]"
+            if eval_res["gate_1_syntax_compilation"]["passed"]
+            else "[red]FAIL[/red]"
+        ),
         str(eval_res["gate_1_syntax_compilation"]["details"])[:60],
     )
     table.add_row(
         "Gate 2: Automated Tests",
-        "[green]PASS[/green]" if eval_res["gate_2_automated_tests"]["passed"] else "[red]FAIL[/red]",
+        (
+            "[green]PASS[/green]"
+            if eval_res["gate_2_automated_tests"]["passed"]
+            else "[red]FAIL[/red]"
+        ),
         f"Exit Code: {eval_res['gate_2_automated_tests']['exit_code']}",
     )
     table.add_row(
@@ -103,8 +138,16 @@ def gates() -> None:
     )
     table.add_row(
         "Overall Gate Status",
-        "[bold green]ALL GREEN[/bold green]" if eval_res["all_gates_passed"] else "[bold red]GATES FAILED[/bold red]",
-        "Ready for Independent Code Review" if eval_res["all_gates_passed"] else "Remediation required",
+        (
+            "[bold green]ALL GREEN[/bold green]"
+            if eval_res["all_gates_passed"]
+            else "[bold red]GATES FAILED[/bold red]"
+        ),
+        (
+            "Ready for Independent Code Review"
+            if eval_res["all_gates_passed"]
+            else "Remediation required"
+        ),
     )
 
     console.print(table)
@@ -113,7 +156,9 @@ def gates() -> None:
 @cli.command(name="list-agents")
 def list_agents() -> None:
     """List all registered agents and their authorized file ownership scopes."""
-    table = Table(title="GitPulse Agent Ownership Directory", show_header=True, header_style="bold cyan")
+    table = Table(
+        title="GitPulse Agent Ownership Directory", show_header=True, header_style="bold cyan"
+    )
     table.add_column("Agent Identifier", style="bold yellow")
     table.add_column("Permitted Write Scopes")
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -36,16 +35,16 @@ class VelocityResponse(BaseModel):
     timeframe: str
     granularity: str
     summary: VelocitySummary
-    timeline: List[TimelinePoint]
+    timeline: list[TimelinePoint]
 
 
 class EventItem(BaseModel):
     event_id: str
     event_type: str
     actor: str
-    actor_avatar_url: Optional[str] = None
-    action: Optional[str] = None
-    payload_summary: Optional[str] = None
+    actor_avatar_url: str | None = None
+    action: str | None = None
+    payload_summary: str | None = None
     created_at: str
 
 
@@ -53,7 +52,7 @@ class EventsResponse(BaseModel):
     total_count: int
     limit: int
     offset: int
-    events: List[EventItem]
+    events: list[EventItem]
 
 
 class HealthResponse(BaseModel):

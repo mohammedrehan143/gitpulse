@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
-from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Integer, JSON, String
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import JSON, BigInteger, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from backend.src.gitpulse.storage.database import Base
 
 
@@ -20,11 +22,13 @@ class Repository(Base):
     stars_count: Mapped[int] = mapped_column(Integer, default=0)
     forks_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
-    events: Mapped[list["GitHubEvent"]] = relationship("GitHubEvent", back_populates="repository")
-    metrics: Mapped[list["DeveloperMetric"]] = relationship("DeveloperMetric", back_populates="repository")
+    events: Mapped[list[GitHubEvent]] = relationship("GitHubEvent", back_populates="repository")
+    metrics: Mapped[list[DeveloperMetric]] = relationship(
+        "DeveloperMetric", back_populates="repository"
+    )
 
 
 class GitHubEvent(Base):
@@ -35,15 +39,15 @@ class GitHubEvent(Base):
     event_type: Mapped[str] = mapped_column(String(64), index=True)
     repo_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("repositories.id"), index=True)
     actor_login: Mapped[str] = mapped_column(String(100), index=True)
-    actor_avatar_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    action: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    payload_summary: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    raw_payload: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
+    actor_avatar_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    action: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    payload_summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    raw_payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
     )
 
-    repository: Mapped["Repository"] = relationship("Repository", back_populates="events")
+    repository: Mapped[Repository] = relationship("Repository", back_populates="events")
 
 
 class CommitRecord(Base):
@@ -73,4 +77,4 @@ class DeveloperMetric(Base):
     lines_deleted: Mapped[int] = mapped_column(Integer, default=0)
     churn_rate: Mapped[float] = mapped_column(Float, default=0.0)
 
-    repository: Mapped["Repository"] = relationship("Repository", back_populates="metrics")
+    repository: Mapped[Repository] = relationship("Repository", back_populates="metrics")

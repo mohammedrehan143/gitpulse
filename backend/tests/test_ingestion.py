@@ -1,6 +1,7 @@
 """Ingestion and Kafka streaming tests."""
 
 import pytest
+
 from backend.src.gitpulse.ingestion.github_client import GitHubClient
 from backend.src.gitpulse.ingestion.kafka_producer import KafkaEventProducer
 from backend.src.gitpulse.services.analytics import AnalyticsService
@@ -29,7 +30,11 @@ def test_analytics_metrics_calculation():
     synthetic_events = [
         {"type": "PushEvent", "actor": {"login": "alice"}, "payload": {"commits": [1, 2]}},
         {"type": "PushEvent", "actor": {"login": "bob"}, "payload": {"commits": [1]}},
-        {"type": "PullRequestEvent", "actor": {"login": "charlie"}, "payload": {"action": "opened"}},
+        {
+            "type": "PullRequestEvent",
+            "actor": {"login": "charlie"},
+            "payload": {"action": "opened"},
+        },
     ]
     summary = AnalyticsService.calculate_metrics_summary(synthetic_events)
     assert summary["total_commits"] == 3

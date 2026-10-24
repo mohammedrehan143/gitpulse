@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,7 +20,7 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     PORT: int | None = None
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "*"]
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000", "*"]
 
     @property
     def server_port(self) -> int:

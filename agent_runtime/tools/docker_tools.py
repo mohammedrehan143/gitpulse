@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class DockerTools:
     """Tooling interface for Docker Compose orchestration checks."""
 
-    def __init__(self, workspace_root: Optional[Path] = None):
+    def __init__(self, workspace_root: Path | None = None):
         self.workspace_root = Path(workspace_root or ".").resolve()
 
-    def _run_docker(self, args: List[str]) -> subprocess.CompletedProcess[str]:
+    def _run_docker(self, args: list[str]) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["docker"] + args,
             cwd=str(self.workspace_root),
@@ -22,7 +22,7 @@ class DockerTools:
             check=False,
         )
 
-    def validate_compose_config(self) -> Dict[str, Any]:
+    def validate_compose_config(self) -> dict[str, Any]:
         """Validates docker-compose.yml configuration."""
         compose_file = self.workspace_root / "docker-compose.yml"
         if not compose_file.exists():
@@ -34,7 +34,7 @@ class DockerTools:
             "error": res.stderr if res.returncode != 0 else None,
         }
 
-    def get_service_status(self) -> Dict[str, Any]:
+    def get_service_status(self) -> dict[str, Any]:
         """Queries running container statuses."""
         res = self._run_docker(["compose", "ps", "--format", "json"])
         if res.returncode != 0:

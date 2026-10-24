@@ -1,7 +1,9 @@
 """Tests for file ownership and permissions sandboxing."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from agent_runtime.shared.permissions import PermissionDeniedError, PermissionManager
 
 

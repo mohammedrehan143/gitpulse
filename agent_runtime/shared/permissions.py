@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import fnmatch
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class PermissionDeniedError(Exception):
@@ -25,7 +24,7 @@ class PermissionDeniedError(Exception):
 
 
 # Mapping of agent identifiers to allowed write glob patterns (relative to repo root)
-AGENT_WRITE_PERMISSIONS: Dict[str, List[str]] = {
+AGENT_WRITE_PERMISSIONS: dict[str, list[str]] = {
     # Orchestrators
     "master-orchestrator": [
         ".agents/tasks/*",
@@ -45,7 +44,6 @@ AGENT_WRITE_PERMISSIONS: Dict[str, List[str]] = {
         "agent_runtime/frontend/*",
         ".agents/tasks/current-task.md",
     ],
-
     # Backend Specialists
     "api-engineer": [
         "backend/src/gitpulse/api/*",
@@ -81,7 +79,6 @@ AGENT_WRITE_PERMISSIONS: Dict[str, List[str]] = {
         "backend/src/gitpulse/common/security.py",
         ".agents/policies/security-rules.md",
     ],
-
     # Frontend Specialists
     "ui-ux-engineer": [
         "frontend/src/components/design-system/*",
@@ -112,7 +109,6 @@ AGENT_WRITE_PERMISSIONS: Dict[str, List[str]] = {
         "frontend/src/**/*.test.tsx",
         "frontend/src/**/*.test.ts",
     ],
-
     # Shared Specialists
     "software-architect": [
         "docs/*",
@@ -139,7 +135,7 @@ AGENT_WRITE_PERMISSIONS: Dict[str, List[str]] = {
 class PermissionManager:
     """Validates and enforces file permissions across the multi-agent hierarchy."""
 
-    def __init__(self, workspace_root: Optional[Path] = None):
+    def __init__(self, workspace_root: Path | None = None):
         self.workspace_root = Path(workspace_root or ".").resolve()
 
     def normalize_path(self, target_path: str | Path) -> str:

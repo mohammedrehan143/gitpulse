@@ -7,14 +7,14 @@ Master -> Router -> Backend Orchestrator & Frontend Orchestrator -> Quality Gate
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, Optional
+
 from agent_runtime.backend.graph import BackendGraphOrchestrator
 from agent_runtime.frontend.graph import FrontendGraphOrchestrator
 from agent_runtime.master.router import TaskRouter
 from agent_runtime.master.state import MasterState
 from agent_runtime.shared.checkpoints import CheckpointManager
 from agent_runtime.shared.permissions import PermissionManager
-from agent_runtime.shared.task_store import TaskRecord, TaskState, TaskStore
+from agent_runtime.shared.task_store import TaskState, TaskStore
 from agent_runtime.shared.telemetry import TelemetryLogger
 from agent_runtime.tools.filesystem_tools import FilesystemTools
 from agent_runtime.tools.git_tools import GitTools
@@ -26,10 +26,10 @@ class MasterGraphOrchestrator:
 
     def __init__(
         self,
-        task_store: Optional[TaskStore] = None,
-        telemetry: Optional[TelemetryLogger] = None,
-        checkpoints: Optional[CheckpointManager] = None,
-        permission_manager: Optional[PermissionManager] = None,
+        task_store: TaskStore | None = None,
+        telemetry: TelemetryLogger | None = None,
+        checkpoints: CheckpointManager | None = None,
+        permission_manager: PermissionManager | None = None,
     ):
         self.task_store = task_store or TaskStore()
         self.telemetry = telemetry or TelemetryLogger()
@@ -54,7 +54,7 @@ class MasterGraphOrchestrator:
             test_tools=self.test_tools,
         )
 
-    def run_epic(self, prompt: str, epic_id: Optional[str] = None) -> MasterState:
+    def run_epic(self, prompt: str, epic_id: str | None = None) -> MasterState:
         """Executes an entire epic through the hierarchical multi-agent system."""
         if not epic_id:
             epic_id = f"EPIC-{uuid.uuid4().hex[:6].upper()}"

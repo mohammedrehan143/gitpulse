@@ -6,9 +6,9 @@ Decomposes backend packets into 4 sequential execution waves.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
-from agent_runtime.shared.permissions import PermissionManager
-from agent_runtime.shared.task_store import HandoffContract, TaskRecord, TaskState, TaskStore
+from typing import Any
+
+from agent_runtime.shared.task_store import HandoffContract, TaskStore
 from agent_runtime.shared.telemetry import TelemetryLogger
 from agent_runtime.tools.filesystem_tools import FilesystemTools
 from agent_runtime.tools.test_tools import TestTools
@@ -29,7 +29,7 @@ class BackendGraphOrchestrator:
         self.fs_tools = fs_tools
         self.test_tools = test_tools
 
-    def execute_backend_packet(self, packet_id: str, objective: str) -> Dict[str, Any]:
+    def execute_backend_packet(self, packet_id: str, objective: str) -> dict[str, Any]:
         """Executes the 4 waves of backend implementation."""
         self.telemetry.record_event(
             event_type="BACKEND_EXECUTION_STARTED",
@@ -38,7 +38,7 @@ class BackendGraphOrchestrator:
             details={"objective": objective},
         )
 
-        waves_executed: List[str] = []
+        waves_executed: list[str] = []
 
         # Wave 1: Storage & Streaming Foundation
         w1_handoff = HandoffContract(
@@ -63,7 +63,10 @@ class BackendGraphOrchestrator:
                 "backend/src/gitpulse/ingestion/github_client.py",
                 "backend/src/gitpulse/ingestion/kafka_producer.py",
             ],
-            acceptance_criteria=["GitHub pagination handled", "Kafka producer produces valid records"],
+            acceptance_criteria=[
+                "GitHub pagination handled",
+                "Kafka producer produces valid records",
+            ],
             files_changed=["backend/src/gitpulse/ingestion/github_client.py"],
             tests_and_results={"status": "passed"},
             next_step="Proceed to Wave 3: API Endpoint Implementation",
@@ -113,6 +116,12 @@ class BackendGraphOrchestrator:
                 "backend/src/gitpulse/storage/models.py",
                 "backend/src/gitpulse/ingestion/github_client.py",
                 "backend/src/gitpulse/api/routes.py",
+            ],
+            "handoffs": [
+                w1_handoff.model_dump(),
+                w2_handoff.model_dump(),
+                w3_handoff.model_dump(),
+                w4_handoff.model_dump(),
             ],
         }
 

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
-from backend.src.gitpulse.common.logging import logger
+from typing import Any
 
 
 class StreamProcessor:
@@ -12,7 +11,7 @@ class StreamProcessor:
     def __init__(self):
         self.processed_count = 0
 
-    def process_raw_event(self, raw_event: Dict[str, Any]) -> Dict[str, Any]:
+    def process_raw_event(self, raw_event: dict[str, Any]) -> dict[str, Any]:
         """Normalizes and enriches a raw GitHub event."""
         self.processed_count += 1
         event_id = raw_event.get("id") or raw_event.get("event_id")

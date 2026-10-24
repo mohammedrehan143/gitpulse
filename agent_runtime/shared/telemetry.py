@@ -7,15 +7,15 @@ and operational metrics.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class TelemetryLogger:
     """Structured telemetry logger storing JSONL events to disk."""
 
-    def __init__(self, log_dir: Optional[Path] = None):
+    def __init__(self, log_dir: Path | None = None):
         if log_dir is None:
             log_dir = Path("agent_runtime/.telemetry_logs")
         self.log_dir = Path(log_dir)
@@ -26,12 +26,12 @@ class TelemetryLogger:
         self,
         event_type: str,
         agent_id: str,
-        task_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        task_id: str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Appends a structured event object to the telemetry log."""
         record = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "event_type": event_type,
             "agent_id": agent_id,
             "task_id": task_id,
@@ -43,16 +43,16 @@ class TelemetryLogger:
 
     def get_events(
         self,
-        task_id: Optional[str] = None,
-        agent_id: Optional[str] = None,
-        event_type: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        task_id: str | None = None,
+        agent_id: str | None = None,
+        event_type: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Retrieves and filters events from the telemetry file."""
         if not self.events_file.exists():
             return []
 
         results = []
-        with open(self.events_file, "r", encoding="utf-8") as f:
+        with open(self.events_file, encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue

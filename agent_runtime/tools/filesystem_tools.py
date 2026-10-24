@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import List, Optional
+
 from agent_runtime.shared.permissions import PermissionManager
 
 
@@ -13,8 +12,8 @@ class FilesystemTools:
 
     def __init__(
         self,
-        workspace_root: Optional[Path] = None,
-        permission_manager: Optional[PermissionManager] = None,
+        workspace_root: Path | None = None,
+        permission_manager: PermissionManager | None = None,
     ):
         self.workspace_root = Path(workspace_root or ".").resolve()
         self.permission_manager = permission_manager or PermissionManager(self.workspace_root)
@@ -24,7 +23,7 @@ class FilesystemTools:
         path = (self.workspace_root / target_path).resolve()
         if not path.exists():
             raise FileNotFoundError(f"File not found: {target_path}")
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return f.read()
 
     def write_file(self, agent_id: str, target_path: str | Path, content: str) -> Path:
@@ -37,7 +36,7 @@ class FilesystemTools:
             f.write(content)
         return path
 
-    def list_files(self, sub_dir: str = ".", pattern: str = "*") -> List[str]:
+    def list_files(self, sub_dir: str = ".", pattern: str = "*") -> list[str]:
         """Lists files matching pattern within a directory."""
         dir_path = (self.workspace_root / sub_dir).resolve()
         if not dir_path.exists():

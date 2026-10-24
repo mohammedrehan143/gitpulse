@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 class AnalyticsService:
     """Computes developer velocity, churn rates, and PR turnaround metrics."""
 
     @staticmethod
-    def calculate_metrics_summary(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def calculate_metrics_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
         """Calculates aggregate velocity indicators from an event list."""
         commit_count = 0
         authors = set()

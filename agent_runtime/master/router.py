@@ -7,9 +7,8 @@ and generates structured subtask work packets.
 from __future__ import annotations
 
 import re
-from typing import List, Tuple
-from agent_runtime.master.state import MasterState, SubTask
-from agent_runtime.shared.task_store import TaskState
+
+from agent_runtime.master.state import SubTask
 
 
 class TaskRouter:
@@ -21,32 +20,69 @@ class TaskRouter:
         words = set(re.findall(r"\b\w+\b", prompt_lower))
         if any(w in words for w in ["fix", "bug", "error", "defect", "broken", "fail"]):
             return "BUG"
-        if any(w in words for w in ["docker", "compose", "ci", "deploy"]) or "github actions" in prompt_lower:
+        if (
+            any(w in words for w in ["docker", "compose", "ci", "deploy"])
+            or "github actions" in prompt_lower
+        ):
             return "INFRASTRUCTURE"
         if any(w in words for w in ["refactor", "cleanup", "reorganize", "deprecate"]):
             return "REFACTOR"
-        if any(w in words for w in ["contract", "e2e", "integration", "cross-domain"]) or "cross-domain" in prompt_lower:
+        if (
+            any(w in words for w in ["contract", "e2e", "integration", "cross-domain"])
+            or "cross-domain" in prompt_lower
+        ):
             return "INTEGRATION"
         return "FEATURE"
 
     @staticmethod
-    def decompose_epic(epic_id: str, prompt: str) -> Tuple[List[SubTask], bool]:
+    def decompose_epic(epic_id: str, prompt: str) -> tuple[list[SubTask], bool]:
         """Decomposes prompt into ordered subtasks and determines contract requirement."""
         task_type = TaskRouter.classify_task_type(prompt)
         prompt_lower = prompt.lower()
 
-        subtasks: List[SubTask] = []
+        subtasks: list[SubTask] = []
         requires_contract = False
 
-        needs_backend = any(w in prompt_lower for w in [
-            "api", "backend", "fastapi", "kafka", "spark", "dbt", "postgres",
-            "database", "ingestion", "pipeline", "endpoint", "webhook"
-        ]) or task_type == "FEATURE"
+        needs_backend = (
+            any(
+                w in prompt_lower
+                for w in [
+                    "api",
+                    "backend",
+                    "fastapi",
+                    "kafka",
+                    "spark",
+                    "dbt",
+                    "postgres",
+                    "database",
+                    "ingestion",
+                    "pipeline",
+                    "endpoint",
+                    "webhook",
+                ]
+            )
+            or task_type == "FEATURE"
+        )
 
-        needs_frontend = any(w in prompt_lower for w in [
-            "ui", "frontend", "react", "dashboard", "chart", "component",
-            "page", "view", "css", "vite", "web"
-        ]) or task_type == "FEATURE"
+        needs_frontend = (
+            any(
+                w in prompt_lower
+                for w in [
+                    "ui",
+                    "frontend",
+                    "react",
+                    "dashboard",
+                    "chart",
+                    "component",
+                    "page",
+                    "view",
+                    "css",
+                    "vite",
+                    "web",
+                ]
+            )
+            or task_type == "FEATURE"
+        )
 
         if needs_backend and needs_frontend:
             requires_contract = True
@@ -96,7 +132,11 @@ class TaskRouter:
                         "Interactive charts rendered with error states",
                         "Zero WCAG 2.1 AA accessibility violations",
                     ],
-                    dependencies=[f"{epic_id}-BE"] if (needs_backend and not prompt_lower.startswith("mock")) else [],
+                    dependencies=(
+                        [f"{epic_id}-BE"]
+                        if (needs_backend and not prompt_lower.startswith("mock"))
+                        else []
+                    ),
                 )
             )
 
