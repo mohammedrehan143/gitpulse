@@ -106,3 +106,44 @@ async def test_refresh_discovered_repositories():
         assert data["status"] == "SYNCHRONIZED"
         assert "synced_count" in data
         assert isinstance(data["repositories"], list)
+
+
+@pytest.mark.asyncio
+async def test_ai_generate_endpoint(monkeypatch):
+    from backend.src.gitpulse.services.ai_service import GroqAIService
+
+    monkeypatch.setattr(
+        GroqAIService,
+        "generate_completion",
+        lambda self, prompt, system_prompt=None: "Mocked Groq Response",
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/api/v1/ai/generate",
+            json={"prompt": "Explain commit velocity", "model": "openai/gpt-oss-120b"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["model"] == "openai/gpt-oss-120b"
+        assert data["response"] == "Mocked Groq Response"
+
+
+@pytest.mark.asyncio
+async def test_ai_insights_endpoint(monkeypatch):
+    from backend.src.gitpulse.services.ai_service import GroqAIService
+
+    monkeypatch.setattr(
+        GroqAIService,
+        "analyze_repository_metrics",
+        lambda self, repo_full_name, metrics: f"Insights for {repo_full_name}: Velocity high",
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post("/api/v1/repos/apache/spark/ai-insights")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["repository"] == "apache/spark"
+        assert "Velocity high" in data["insights"]

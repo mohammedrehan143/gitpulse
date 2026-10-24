@@ -15,6 +15,7 @@ Autonomous MAS Workflow Active
 | **Milestone 4** | **Modern React Analytics Dashboard** | Frontend (UI/UX, Frontend, Charts, A11y, Tests) | **DONE** | React 18 / Vite SPA, commit velocity charts, metrics cards, WCAG 2.1 AA accessibility, Vitest client suites passing. |
 | **Milestone 5** | **End-to-End Operationalization & Ingestion CLI** | Ingestion, API, DevOps | **DONE** | Standalone ingestion CLI runner, real-time webhook routing, synthetic fallback mode, live WebSocket broadcasts. |
 | **Milestone 6** | **Automatic Discovery & Repository Monitoring** | Ingestion, Database, API, Frontend | **DONE** | Authenticated `GET /user/repos` pagination, owner-only filtering, private/public visibility, database synchronization, deleted repo tracking, FastAPI refresh endpoints, and React RepositoryList UI. |
+| **Milestone 7** | **Groq AI Integration (openai/gpt-oss-120b)** | AI Engineering, API, Runtime | **DONE** | Groq SDK streaming client, repository velocity insights engine, `/api/v1/ai/generate` and `/repos/{owner}/{repo}/ai-insights` endpoints. |
 
 ---
 
@@ -42,7 +43,7 @@ Autonomous MAS Workflow Active
 
 - **Gate 1 (Static Analysis)**: Clean passes on `ruff check` and `black --check` across 47 Python files.
 - **Gate 2 (Automated Testing)**: 
-  - Backend: 38/38 Pytest tests passing (100% green).
+  - Backend: 43/43 Pytest tests passing (100% green).
   - Frontend: 6/6 Vitest tests passing (100% green).
 - **Gate 3 (Security Audit)**: Zero hardcoded secrets, zero high/critical vulnerabilities.
 - **Gate 4 (Independent Review)**: Strict adherence to file boundaries and domain handoffs.

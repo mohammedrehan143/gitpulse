@@ -20,6 +20,9 @@ from fastapi import (
 )
 
 from backend.src.gitpulse.api.schemas import (
+    AIGenerateRequest,
+    AIGenerateResponse,
+    AIInsightsResponse,
     DiscoveredRepositoryItem,
     EventItem,
     EventsResponse,
@@ -33,6 +36,7 @@ from backend.src.gitpulse.api.schemas import (
 )
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
+from backend.src.gitpulse.services.ai_service import GroqAIService
 from backend.src.gitpulse.services.repository_service import RepositoryService
 
 router = APIRouter(prefix="/api/v1", tags=["analytics"])
@@ -108,6 +112,49 @@ async def refresh_repositories() -> RefreshRepositoriesResponse:
         status="SYNCHRONIZED",
         synced_count=len(items),
         repositories=items,
+    )
+
+
+@router.post("/ai/generate", response_model=AIGenerateResponse)
+async def ai_generate(request: AIGenerateRequest) -> AIGenerateResponse:
+    """Generates completion text using Groq LLM (e.g., openai/gpt-oss-120b)."""
+    service = GroqAIService(model=request.model)
+    response_text = service.generate_completion(
+        prompt=request.prompt,
+        system_prompt=request.system_prompt,
+    )
+    return AIGenerateResponse(
+        model=service.model,
+        response=response_text,
+    )
+
+
+@router.post("/repos/{owner}/{repo}/ai-insights", response_model=AIInsightsResponse)
+async def get_repository_ai_insights(owner: str, repo: str) -> AIInsightsResponse:
+    """Produces AI velocity and architecture insights for a repository using Groq."""
+    velocity_data = await get_repository_velocity(
+        owner=owner,
+        repo=repo,
+        timeframe="30d",
+        granularity="day",
+    )
+    service = GroqAIService()
+    summary_dict = {
+        "total_commits": velocity_data.summary.total_commits,
+        "active_contributors": velocity_data.summary.active_contributors,
+        "avg_pr_cycle_time_hours": velocity_data.summary.avg_pr_cycle_time_hours,
+        "churn_rate": velocity_data.summary.churn_rate,
+        "lines_added": velocity_data.summary.lines_added,
+        "lines_deleted": velocity_data.summary.lines_deleted,
+    }
+    insights = service.analyze_repository_metrics(
+        repo_full_name=f"{owner}/{repo}",
+        metrics=summary_dict,
+    )
+    return AIInsightsResponse(
+        repository=f"{owner}/{repo}",
+        model=service.model,
+        insights=insights,
     )
 
 

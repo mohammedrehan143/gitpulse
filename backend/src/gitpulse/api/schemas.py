@@ -90,3 +90,20 @@ class RefreshRepositoriesResponse(BaseModel):
     status: str
     synced_count: int
     repositories: list[DiscoveredRepositoryItem]
+
+
+class AIGenerateRequest(BaseModel):
+    prompt: str
+    system_prompt: str | None = None
+    model: str | None = None
+
+
+class AIGenerateResponse(BaseModel):
+    model: str
+    response: str
+
+
+class AIInsightsResponse(BaseModel):
+    repository: str
+    model: str
+    insights: str
