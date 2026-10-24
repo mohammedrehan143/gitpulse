@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_BUCKET_LAKEHOUSE: str = "gitpulse-lakehouse"
 
+    # Notifications & Webhooks
+    DISCORD_WEBHOOK_URL: str = ""
+
     # AI & Multi-Agent LLM Orchestration
     LLM_PROVIDER: str = "groq"
     GROQ_API_KEY: str = ""
