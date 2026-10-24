@@ -17,10 +17,22 @@ Autonomous MAS Workflow Active
 | **Milestone 6** | **Automatic Discovery & Repository Monitoring** | Ingestion, Database, API, Frontend | **DONE** | Authenticated `GET /user/repos` pagination, owner-only filtering, private/public visibility, database synchronization, deleted repo tracking, FastAPI refresh endpoints, and React RepositoryList UI. |
 | **Milestone 7** | **Groq AI Integration (openai/gpt-oss-120b)** | AI Engineering, API, Runtime | **DONE** | Groq SDK streaming client, repository velocity insights engine, `/api/v1/ai/generate` and `/repos/{owner}/{repo}/ai-insights` endpoints. |
 | **Milestone 8** | **Architecture Simplification & Direct Supabase Flow** | Backend, Architecture, DevOps | **DONE** | Decoupled Kafka & MinIO from runtime `.env` and `config.py`. Ingestion runner persists directly to Supabase (`GitHubEvent`), updates `Repository` monitoring status, and dispatches Discord alerts. Quality gates all green. |
+| **Milestone 9** | **Lightweight Python Ingestion Scheduler (Airflow Replacement)** | Backend (Ingestion, Scheduler, Tests) | **DONE** | Native Python `asyncio` scheduler with 60-minute recurring loop, immediate startup run, concurrency locking, Ctrl+C graceful shutdown, zero extra disk/dependencies. 8 unit tests passing. |
 
 ---
 
-## 2. Milestone 8: Direct Flow & Architecture Streamlining
+## 2. Milestone 9: Lightweight Python Scheduler
+
+- [x] **SCHED-901**: Implemented [backend/src/gitpulse/scheduler.py](file:///D:/agy/gitpulse/backend/src/gitpulse/scheduler.py) using native `asyncio.Event` and non-blocking wait.
+- [x] **SCHED-902**: Extracted reusable [run_ingestion_pipeline](file:///D:/agy/gitpulse/backend/src/gitpulse/ingestion/runner.py) with automatic repository discovery and fallback resolution.
+- [x] **SCHED-903**: Implemented concurrency locking via `asyncio.Lock` preventing overlapping runs.
+- [x] **SCHED-904**: Added robust error resilience catching rate limits, network errors, and database disconnects without crashing.
+- [x] **SCHED-905**: Cleaned obsolete Apache Airflow settings from `.env`, `.env.example`, and added `make scheduler` CLI target.
+- [x] **SCHED-906**: Authored 8 test suites in [backend/tests/test_scheduler.py](file:///D:/agy/gitpulse/backend/tests/test_scheduler.py) verifying interval, execution, failure handling, lock prevention, and graceful shutdown.
+
+---
+
+## 3. Milestone 8: Direct Flow & Architecture Streamlining
 
 - [x] **CONF-801**: Cleaned `.env` and `.env.example` removing all `KAFKA_*` and `MINIO_*` variables.
 - [x] **CONF-802**: Updated `Settings` in [backend/src/gitpulse/common/config.py](file:///D:/agy/gitpulse/backend/src/gitpulse/common/config.py) to remove unused streaming/lakehouse settings and added `REDIS_URL`, `GITHUB_WEBHOOK_SECRET`.

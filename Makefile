@@ -1,4 +1,4 @@
-.PHONY: help install lint format test test-agents run-agents docker-up docker-down clean frontend-install frontend-dev backend-dev
+.PHONY: help install lint format test test-agents run-agents docker-up docker-down clean frontend-install frontend-dev backend-dev scheduler
 
 help:
 	@echo "GitPulse Multi-Agent & Data Engineering Platform CLI"
@@ -15,6 +15,7 @@ help:
 	@echo "  make frontend-install Install frontend npm dependencies"
 	@echo "  make frontend-dev    Start Vite development server"
 	@echo "  make backend-dev     Start FastAPI backend server with hot reload"
+	@echo "  make scheduler       Start lightweight ingestion scheduler (recurring 60m)"
 	@echo "  make clean           Clean caches, logs, and build artifacts"
 
 install:
@@ -53,6 +54,9 @@ frontend-dev:
 
 backend-dev:
 	uvicorn backend.src.gitpulse.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+scheduler:
+	python -m backend.src.gitpulse.scheduler
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +

@@ -68,6 +68,7 @@ dev = [
 [project.scripts]
 gitpulse-agent = "agent_runtime.main:cli"
 gitpulse-api = "backend.src.gitpulse.api.main:start"
+gitpulse-scheduler = "backend.src.gitpulse.scheduler:start"
 
 [tool.setuptools.packages.find]
 where = ["."]

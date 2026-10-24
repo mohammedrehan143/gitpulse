@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     GITHUB_RATE_LIMIT_BUFFER: int = 100
     AUTO_DISCOVER_REPOSITORIES: bool = True
     REPO_DISCOVERY_INTERVAL_MINUTES: int = 60
+    INGESTION_SCHEDULE_INTERVAL_MINUTES: int = 60
     GITHUB_TARGET_REPOS: str = "apache/spark,fastapi/fastapi,facebook/react"
 
     # Supabase Relational Database & Cloud Storage

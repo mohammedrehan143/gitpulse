@@ -1,6 +1,6 @@
 # GitPulse — GitHub Activity Analytics Data Engineering Platform & Multi-Agent Architecture
 
-GitPulse is an enterprise-grade GitHub Activity Analytics and Data Engineering Platform paired with an autonomous, strictly hierarchical Multi-Agent System (MAS). It ingests high-frequency GitHub event streams (commits, issues, pull requests, code reviews), delivers them through an event-driven streaming backbone (Apache Kafka), processes analytical aggregates with Apache Spark and dbt, stores state across PostgreSQL and Apache Iceberg/MinIO, and surfaces real-time developer velocity metrics through a FastAPI backend and a React/TypeScript dashboard.
+GitPulse is an enterprise-grade GitHub Activity Analytics and Engineering Intelligence Platform paired with an autonomous, strictly hierarchical Multi-Agent System (MAS). It ingests high-frequency GitHub event streams (commits, issues, pull requests, code reviews) directly into Supabase (PostgreSQL / SQLite fallback), executes recurring event ingestion using a lightweight native Python scheduler (zero Airflow or Docker dependency), generates AI developer velocity insights via Groq (`openai/gpt-oss-120b`), dispatches real-time Discord webhook alerts, and surfaces live developer velocity metrics through a FastAPI backend and a React/TypeScript dashboard.
 
 ---
 
@@ -183,20 +183,40 @@ gitpulse/
    pip install -e ".[dev,streaming,storage]"
    ```
 
-3. **Start Infrastructure Services**:
+3. **Start Lightweight Ingestion Scheduler (Zero Docker / Airflow Needed)**:
    ```bash
-   make docker-up
-   ```
-   This spins up PostgreSQL (`:5432`), Kafka (`:9092`), MinIO (`:9000`), Redis (`:6379`), Prometheus (`:9090`), and Grafana (`:3000`).
+   # Run the scheduler directly on Windows / Linux:
+   python -m backend.src.gitpulse.scheduler
 
-4. **Run Agent Runtime Tests**:
+   # Or via make target:
+   make scheduler
+
+   # Custom interval (e.g., every 30 minutes) with Discord alerts:
+   python -m backend.src.gitpulse.scheduler --interval 30 --notify
+   ```
+   - Automatically executes an ingestion cycle **immediately** on startup.
+   - Repeats ingestion every 60 minutes (configurable via `REPO_DISCOVERY_INTERVAL_MINUTES` or `--interval`).
+   - Discovers all repositories owned by authenticated GitHub token (`AUTO_DISCOVER_REPOSITORIES=true`).
+   - Persists `GitHubEvent` and repository metadata directly into Supabase (or SQLite dev fallback).
+   - Prevents overlapping ingestion runs via concurrency locking.
+   - Graceful shutdown with `Ctrl+C`.
+
+4. **Start the FastAPI Backend Server**:
    ```bash
-   make test-agents
+   make backend-dev
+   # Runs on http://localhost:8000 (Swagger docs at http://localhost:8000/docs)
    ```
 
-5. **Execute a Task Through the Master Orchestrator**:
+5. **Start the Frontend Dashboard**:
    ```bash
-   python -m agent_runtime.main run --task "Implement GitHub Webhook Ingestion Endpoint"
+   make frontend-dev
+   # Runs on http://localhost:5173
+   ```
+
+6. **Run Test Suites**:
+   ```bash
+   make test
+   # Runs all 53 backend and scheduler unit tests
    ```
 
 ---

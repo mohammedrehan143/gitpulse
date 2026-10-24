@@ -182,6 +182,41 @@ async def ingest_repository_events(
     return summary
 
 
+async def run_ingestion_pipeline(
+    target_repos: list[str] | None = None,
+    max_pages: int = 2,
+    publish_to_kafka: bool = False,
+    persist_to_db: bool = True,
+    notify_discord: bool = False,
+) -> dict[str, int]:
+    """Resolves target repositories (via auto-discovery or fallback list) and executes ingestion."""
+    if not target_repos:
+        repo_service = RepositoryService()
+        if settings.AUTO_DISCOVER_REPOSITORIES:
+            try:
+                await repo_service.sync_repositories()
+            except Exception as exc:
+                logger.warning(
+                    "Repository auto-discovery failed during ingestion pipeline: %s", exc
+                )
+        target_repos = await repo_service.get_target_repo_names()
+        if not target_repos:
+            target_repos = [r.strip() for r in settings.GITHUB_TARGET_REPOS.split(",") if r.strip()]
+
+    logger.info(
+        "Executing ingestion pipeline over %d target repositories: %s",
+        len(target_repos),
+        target_repos,
+    )
+    return await ingest_repository_events(
+        repos=target_repos,
+        max_pages=max_pages,
+        publish_to_kafka=publish_to_kafka,
+        persist_to_db=persist_to_db,
+        notify_discord=notify_discord,
+    )
+
+
 def main() -> None:
     """CLI execution entrypoint."""
     parser = argparse.ArgumentParser(
@@ -212,29 +247,15 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    async def resolve_and_ingest():
-        if args.repo:
-            target_repos = [args.repo]
-        else:
-            repo_service = RepositoryService()
-            target_repos = await repo_service.get_target_repo_names()
-            if not target_repos:
-                target_repos = [
-                    r.strip() for r in settings.GITHUB_TARGET_REPOS.split(",") if r.strip()
-                ]
-
-        logger.info(
-            "Executing ingestion over %d target repositories: %s", len(target_repos), target_repos
-        )
-        return await ingest_repository_events(
-            repos=target_repos,
+    results = asyncio.run(
+        run_ingestion_pipeline(
+            target_repos=[args.repo] if args.repo else None,
             max_pages=args.pages,
             publish_to_kafka=not args.no_kafka,
             persist_to_db=True,
             notify_discord=args.notify,
         )
-
-    results = asyncio.run(resolve_and_ingest())
+    )
 
     print("\n--- GitPulse Ingestion Summary ---")
     for r, count in results.items():
