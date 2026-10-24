@@ -2,7 +2,7 @@
 
 ## 1. System Overview
 
-**GitPulse** is a high-throughput GitHub Activity Analytics and Data Engineering Platform. It ingests raw GitHub event streams (commits, pull requests, issues, review timelines), streams them through Apache Kafka, processes analytical aggregates via Apache Spark and dbt, stores persistent state in Supabase (PostgreSQL), serves analytics via FastAPI, and presents real-time developer velocity metrics through a React/TypeScript dashboard.
+**GitPulse** is a real-time GitHub Activity Analytics and Engineering Intelligence Platform. It ingests raw GitHub event streams (commits, pull requests, issues, review timelines), persists them directly into Supabase (PostgreSQL / SQLite fallback), serves analytics via FastAPI with WebSocket real-time updates, delivers automated Discord webhook alerts, generates developer velocity insights using Groq AI (`openai/gpt-oss-120b`), and presents real-time developer velocity metrics through a React/TypeScript dashboard.
 
 To engineer, test, maintain, and evolve GitPulse at scale, the engineering organization operates under an autonomous, strict, hierarchical **Multi-Agent System (MAS)**:
 

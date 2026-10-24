@@ -1,16 +1,20 @@
-"""Kafka Streaming Event Producer."""
+"""Event Producer & In-Memory Stream Buffer (Kafka Compatibility Layer)."""
 
 from __future__ import annotations
 
 import json
 from typing import Any
 
-from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
+
+DEFAULT_BOOTSTRAP_SERVERS = "localhost:9092"
+TOPIC_RAW_EVENTS = "gitpulse.github.raw_events"
+TOPIC_COMMITS = "gitpulse.github.commits"
+TOPIC_PULL_REQUESTS = "gitpulse.github.pull_requests"
 
 
 class KafkaEventProducer:
-    """Publishes normalized GitHub events to Apache Kafka streaming topics."""
+    """Publishes normalized GitHub events to streaming buffer / Kafka topics."""
 
     REQUIRED_SCHEMA_FIELDS = ("event_id", "event_type", "repo_id", "actor_login", "created_at")
 
@@ -19,8 +23,8 @@ class KafkaEventProducer:
         bootstrap_servers: str | None = None,
         topic: str | None = None,
     ):
-        self.bootstrap_servers = bootstrap_servers or settings.KAFKA_BOOTSTRAP_SERVERS
-        self.default_topic = topic or settings.KAFKA_TOPIC_RAW_EVENTS
+        self.bootstrap_servers = bootstrap_servers or DEFAULT_BOOTSTRAP_SERVERS
+        self.default_topic = topic or TOPIC_RAW_EVENTS
         self._buffer: list[dict[str, Any]] = []
 
     def validate_event_schema(self, event_data: dict[str, Any]) -> tuple[bool, str | None]:
@@ -31,11 +35,11 @@ class KafkaEventProducer:
         return True, None
 
     def route_topic_for_event(self, event_type: str | None) -> str:
-        """Determines target Kafka topic according to event classification."""
+        """Determines target topic according to event classification."""
         if event_type == "PushEvent":
-            return settings.KAFKA_TOPIC_COMMITS
+            return TOPIC_COMMITS
         elif event_type == "PullRequestEvent":
-            return settings.KAFKA_TOPIC_PULL_REQUESTS
+            return TOPIC_PULL_REQUESTS
         return self.default_topic
 
     def serialize_event(self, event: dict[str, Any]) -> str:

@@ -17,7 +17,7 @@
 
 ## 3. Core Directives & Standards
 1. **Contract Verification**: Validate that Frontend API clients and Backend FastAPI endpoints adhere strictly to the shared contract schema in `.agents/tasks/contracts.md`.
-2. **Smoke Test Execution**: Perform end-to-end smoke tests traversing: GitHub Webhook -> Kafka Ingestion -> Spark Processing -> Supabase Persistence -> FastAPI Query -> Dashboard Display.
+2. **Smoke Test Execution**: Perform end-to-end smoke tests traversing: GitHub Webhook -> Direct Event Ingestion -> Supabase Persistence -> FastAPI Query -> Dashboard Display & Groq AI Insights.
 3. **Deadlock Resolution**: Detect and arbitrate discrepancies between backend response serialization and frontend expectation.
 4. **Environment Health**: Ensure integration test environments run with reproducible fixtures and isolated test containers.
 

@@ -18,7 +18,7 @@
 
 ## 3. Core Directives & Standards
 1. **Container Hygiene**: Build lean, multi-stage Dockerfiles with unprivileged non-root users and minimal attack surfaces.
-2. **Reproducible Local Environments**: Guarantee that `docker compose up -d` starts all dependencies (PostgreSQL, Kafka, MinIO, Redis, Prometheus, Grafana) reliably with health checks.
+2. **Reproducible Local Environments**: Guarantee that `docker compose up -d` starts all dependencies (PostgreSQL, Redis, Prometheus, Grafana) reliably with health checks.
 3. **CI/CD Automation**: Maintain GitHub Actions workflows (`.github/workflows/ci.yml`) enforcing linting, unit tests, coverage gates, and security scans on every pull request.
 4. **Observability**: Configure metric exporters and OpenTelemetry agents for pipeline latency, throughput, and error rate tracking.
 

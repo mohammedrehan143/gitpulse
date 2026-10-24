@@ -40,7 +40,7 @@ run-agents:
 	python -m agent_runtime.main run --task "Process initial repository backlog"
 
 docker-up:
-	docker compose up -d kafka minio redis prometheus grafana
+	docker compose up -d redis prometheus grafana
 
 docker-down:
 	docker compose down

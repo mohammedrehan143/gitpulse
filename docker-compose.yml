@@ -6,14 +6,12 @@ networks:
 
 volumes:
   postgres_data:
-  minio_data:
-  kafka_data:
   prometheus_data:
   grafana_data:
 
 services:
   # ----------------------------------------------------------------------------
-  # Relational Database: PostgreSQL 16
+  # Relational Database: PostgreSQL 16 (Local Supabase Proxy / Standalone)
   # ----------------------------------------------------------------------------
   postgres:
     image: postgres:16-alpine
@@ -34,55 +32,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # ----------------------------------------------------------------------------
-  # Streaming Engine: Apache Kafka (KRaft mode, no Zookeeper required)
-  # ----------------------------------------------------------------------------
-  kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    container_name: gitpulse-kafka
-    restart: unless-stopped
-    ports:
-      - "9092:9092"
-      - "9093:9093"
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
-      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
-      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
-    volumes:
-      - kafka_data:/tmp/kraft-combined-logs
-    networks:
-      - gitpulse-network
-
-  # ----------------------------------------------------------------------------
-  # Lakehouse Storage: MinIO (S3 Compatible Object Storage)
-  # ----------------------------------------------------------------------------
-  minio:
-    image: minio/minio:RELEASE.2024-03-05T04-48-44Z
-    container_name: gitpulse-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - minio_data:/data
-    networks:
-      - gitpulse-network
 
   # ----------------------------------------------------------------------------
   # Caching and Ephemeral Broker: Redis
@@ -146,13 +95,10 @@ services:
       - POSTGRES_DB=gitpulse
       - POSTGRES_USER=gitpulse_admin
       - POSTGRES_PASSWORD=gitpulse_secure_password
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
-      kafka:
-        condition: service_started
     networks:
       - gitpulse-network
 

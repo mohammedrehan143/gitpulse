@@ -16,10 +16,22 @@ Autonomous MAS Workflow Active
 | **Milestone 5** | **End-to-End Operationalization & Ingestion CLI** | Ingestion, API, DevOps | **DONE** | Standalone ingestion CLI runner, real-time webhook routing, synthetic fallback mode, live WebSocket broadcasts. |
 | **Milestone 6** | **Automatic Discovery & Repository Monitoring** | Ingestion, Database, API, Frontend | **DONE** | Authenticated `GET /user/repos` pagination, owner-only filtering, private/public visibility, database synchronization, deleted repo tracking, FastAPI refresh endpoints, and React RepositoryList UI. |
 | **Milestone 7** | **Groq AI Integration (openai/gpt-oss-120b)** | AI Engineering, API, Runtime | **DONE** | Groq SDK streaming client, repository velocity insights engine, `/api/v1/ai/generate` and `/repos/{owner}/{repo}/ai-insights` endpoints. |
+| **Milestone 8** | **Architecture Simplification & Direct Supabase Flow** | Backend, Architecture, DevOps | **DONE** | Decoupled Kafka & MinIO from runtime `.env` and `config.py`. Ingestion runner persists directly to Supabase (`GitHubEvent`), updates `Repository` monitoring status, and dispatches Discord alerts. Quality gates all green. |
 
 ---
 
-## 2. Milestone 3: Completed Work Packets
+## 2. Milestone 8: Direct Flow & Architecture Streamlining
+
+- [x] **CONF-801**: Cleaned `.env` and `.env.example` removing all `KAFKA_*` and `MINIO_*` variables.
+- [x] **CONF-802**: Updated `Settings` in [backend/src/gitpulse/common/config.py](file:///D:/agy/gitpulse/backend/src/gitpulse/common/config.py) to remove unused streaming/lakehouse settings and added `REDIS_URL`, `GITHUB_WEBHOOK_SECRET`.
+- [x] **INGEST-801**: Refactored [backend/src/gitpulse/ingestion/runner.py](file:///D:/agy/gitpulse/backend/src/gitpulse/ingestion/runner.py) to directly insert events into `GitHubEvent` in Supabase with deduplication, update `Repository.monitoring_status` to `MONITORED`, and optionally dispatch Discord alerts.
+- [x] **INGEST-802**: Decoupled [backend/src/gitpulse/ingestion/kafka_producer.py](file:///D:/agy/gitpulse/backend/src/gitpulse/ingestion/kafka_producer.py) from settings for hermetic testing without broker dependencies.
+- [x] **NOTIF-801**: Fixed `NotificationService` falsy webhook handling in [backend/src/gitpulse/services/notification_service.py](file:///D:/agy/gitpulse/backend/src/gitpulse/services/notification_service.py).
+- [x] **INFRA-801**: Cleaned [docker-compose.yml](file:///D:/agy/gitpulse/docker-compose.yml) and [Makefile](file:///D:/agy/gitpulse/Makefile) to remove Kafka and MinIO containers.
+
+---
+
+## 3. Milestone 3: Completed Work Packets
 
 - [x] **STOR-301**: Designed PostgreSQL relational schema with SQLAlchemy 2.0 declarative ORM models and Alembic migration scripts ([backend/src/gitpulse/storage/models.py](file:///D:/agy/gitpulse/backend/src/gitpulse/storage/models.py), [backend/migrations/versions/001_initial_schema.sql](file:///D:/agy/gitpulse/backend/migrations/versions/001_initial_schema.sql)).
 - [x] **STOR-302**: Authored dbt analytical models (`stg_github_events`, `fct_repo_velocity`) for commit velocity and PR turnaround in [data_platform/dbt/models/](file:///D:/agy/gitpulse/data_platform/dbt/models/).

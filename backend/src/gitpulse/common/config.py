@@ -57,18 +57,9 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
 
-    # Streaming & Kafka
-    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
-    KAFKA_TOPIC_RAW_EVENTS: str = "gitpulse.github.raw_events"
-    KAFKA_TOPIC_COMMITS: str = "gitpulse.github.commits"
-    KAFKA_TOPIC_PULL_REQUESTS: str = "gitpulse.github.pull_requests"
-    KAFKA_CONSUMER_GROUP: str = "gitpulse-stream-processors"
-
-    # MinIO / Lakehouse
-    MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
-    MINIO_BUCKET_LAKEHOUSE: str = "gitpulse-lakehouse"
+    # Caching & Webhooks
+    REDIS_URL: str = "redis://localhost:6379/0"
+    GITHUB_WEBHOOK_SECRET: str = ""
 
     # Notifications & Webhooks
     DISCORD_WEBHOOK_URL: str = ""

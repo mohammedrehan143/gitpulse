@@ -14,7 +14,9 @@ class NotificationService:
     """Dispatches event alerts and metrics digests to external channels."""
 
     def __init__(self, discord_webhook_url: str | None = None):
-        self.webhook_url = discord_webhook_url or settings.DISCORD_WEBHOOK_URL
+        self.webhook_url = (
+            discord_webhook_url if discord_webhook_url is not None else settings.DISCORD_WEBHOOK_URL
+        )
 
     async def send_discord_notification(
         self,

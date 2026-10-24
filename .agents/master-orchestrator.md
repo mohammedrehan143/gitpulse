@@ -32,7 +32,7 @@ Upon receiving a user prompt or system goal:
 - Determine whether Backend and Frontend tracks can run in parallel (e.g. mock API available) or must run sequentially.
 
 ### 3.3 Delegation & Orchestration
-- Dispatch backend work packet to `backend-orchestrator` (enforcing Supabase relational storage, Kafka streaming, and API schemas).
+- Dispatch backend work packet to `backend-orchestrator` (enforcing Supabase relational storage, direct event ingestion, Groq AI analytics, and API schemas).
 - Dispatch frontend work packet to `frontend-orchestrator`.
 - Dispatch infrastructure/CI requirements to `devops-engineer`.
 - Dispatch E2E contract verification to `integration-engineer`.
