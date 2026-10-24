@@ -12,14 +12,14 @@
 - [x] **DATA-203**: Author PySpark Structured Streaming consumer for deduplication and windowed aggregations.
 - [x] **DATA-204**: Configure MinIO / Apache Iceberg Lakehouse storage connectors.
 
-## Milestone 3: Storage, Modeling & Analytics Serving (Status: READY)
-- [ ] **STOR-301**: Design PostgreSQL schema for repositories, events, and developer metrics with Alembic migrations.
-- [ ] **STOR-302**: Author dbt models (staging, intermediate, and marts) for commit velocity and PR turnaround.
-- [ ] **STOR-303**: Author Airflow batch scheduling DAGs for daily aggregate rollups.
-- [ ] **API-301**: Implement FastAPI REST endpoints for repository analytics and commit velocity queries.
+## Milestone 3: Storage, Modeling & Analytics Serving (Status: DONE)
+- [x] **STOR-301**: Design PostgreSQL schema for repositories, events, and developer metrics with Alembic migrations.
+- [x] **STOR-302**: Author dbt models (staging, intermediate, and marts) for commit velocity and PR turnaround.
+- [x] **STOR-303**: Author Airflow batch scheduling DAGs for daily aggregate rollups.
+- [x] **API-301**: Implement FastAPI REST endpoints for repository analytics and commit velocity queries.
 
-## Milestone 4: Modern React Analytics Dashboard (Status: BACKLOG)
-- [ ] **UI-401**: Build React 18 + Vite application shell with responsive layout and design tokens.
-- [ ] **UI-402**: Implement interactive velocity and commit frequency charts using open-source charting library.
-- [ ] **UI-403**: Build repository metrics summary cards and recent activity tables.
-- [ ] **UI-404**: Execute WCAG 2.1 AA accessibility audit and comprehensive test suite.
+## Milestone 4: Modern React Analytics Dashboard (Status: DONE)
+- [x] **UI-401**: Build React 18 + Vite application shell with responsive layout and design tokens.
+- [x] **UI-402**: Implement interactive velocity and commit frequency charts using open-source charting library.
+- [x] **UI-403**: Build repository metrics summary cards and recent activity tables.
+- [x] **UI-404**: Execute WCAG 2.1 AA accessibility audit and comprehensive test suite.

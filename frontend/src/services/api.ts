@@ -29,3 +29,37 @@ export async function fetchRepositoryEvents(
   }
   return res.json();
 }
+
+export function createRepoWebSocket(
+  owner: string,
+  repo: string,
+  onMessage: (data: unknown) => void,
+  onError?: (err: Event) => void
+): WebSocket | null {
+  if (typeof window === 'undefined' || !window.WebSocket) {
+    return null;
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  const wsUrl = `${protocol}//${host}/api/v1/ws/repos/${owner}/${repo}`;
+  const ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ action: 'subscribe', events: ['metrics_update', 'new_event'] }));
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const parsed = JSON.parse(event.data);
+      onMessage(parsed);
+    } catch {
+      // Ignore unparseable frames
+    }
+  };
+
+  if (onError) {
+    ws.onerror = onError;
+  }
+
+  return ws;
+}
