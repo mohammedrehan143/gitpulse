@@ -43,6 +43,8 @@ def main():
 
     webhook_arg = f'--webhook-url "{webhook_url}"' if webhook_url else ""
 
+    log_file_posix = str(global_hooks_dir / "hook.log").replace("\\", "/")
+
     # 1. Create post-commit hook script
     post_commit_script = global_hooks_dir / "post-commit"
     post_commit_content = f"""#!/usr/bin/env bash
@@ -67,7 +69,7 @@ export PYTHONPATH="{root_posix}:$PYTHONPATH"
     --pusher "$PUSHER" \\
     --branch "$BRANCH" \\
     --message "$MSG" \\
-    --sha "$SHA" > /dev/null 2>&1 || true
+    --sha "$SHA" >> "{log_file_posix}" 2>&1 || true
 """
     post_commit_script.write_text(post_commit_content, encoding="utf-8")
 
@@ -101,7 +103,7 @@ export PYTHONPATH="{root_posix}:$PYTHONPATH"
     --pusher "$PUSHER" \\
     --branch "$BRANCH" \\
     --message "$MSG" \\
-    --sha "$SHA" > /dev/null 2>&1 || true
+    --sha "$SHA" >> "{log_file_posix}" 2>&1 || true
 
 exit 0
 """
