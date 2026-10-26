@@ -41,6 +41,7 @@ from backend.src.gitpulse.common.logging import logger
 from backend.src.gitpulse.ingestion.github_client import GitHubClient
 from backend.src.gitpulse.ingestion.runner import _persist_events_to_db
 from backend.src.gitpulse.services.ai_service import GroqAIService
+from backend.src.gitpulse.services.notification_service import NotificationService
 from backend.src.gitpulse.services.repository_service import RepositoryService
 from backend.src.gitpulse.storage.database import AsyncSessionLocal
 from backend.src.gitpulse.storage.models import GitHubEvent, Repository
@@ -454,12 +455,12 @@ async def handle_github_webhook(
     request: Request,
     x_hub_signature_256: str | None = Header(None),
 ) -> dict:
-    """Receives and verifies GitHub webhook payloads with HMAC SHA-256."""
+    """Receives, verifies, and processes GitHub webhook payloads, notifying Discord and WebSocket."""
     payload_body = await request.body()
 
-    secret = settings.GITHUB_TOKEN.encode("utf-8")
-    if secret and x_hub_signature_256:
-        expected = "sha256=" + hmac.new(secret, payload_body, hashlib.sha256).hexdigest()
+    webhook_secret = (settings.GITHUB_WEBHOOK_SECRET or settings.GITHUB_TOKEN or "").encode("utf-8")
+    if webhook_secret and x_hub_signature_256:
+        expected = "sha256=" + hmac.new(webhook_secret, payload_body, hashlib.sha256).hexdigest()
         if not hmac.compare_digest(expected, x_hub_signature_256):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -467,26 +468,64 @@ async def handle_github_webhook(
             )
 
     try:
-        parsed_payload = json.loads(payload_body.decode("utf-8")) if payload_body else {}
-        repo_name = parsed_payload.get("repository", {}).get("full_name", "general")
+        parsed = json.loads(payload_body.decode("utf-8")) if payload_body else {}
+        event_name = request.headers.get("X-GitHub-Event", "push").lower()
+        repo_name = parsed.get("repository", {}).get("full_name", "general")
         now_iso = datetime.now(UTC).isoformat()
+
+        # If it's a push event, send automated Discord alert from GitPulse
+        if event_name == "push":
+            pusher = (
+                parsed.get("pusher", {}).get("name")
+                or parsed.get("sender", {}).get("login")
+                or "developer"
+            )
+            ref = parsed.get("ref") or "refs/heads/main"
+            branch = ref.replace("refs/heads/", "")
+            commits = parsed.get("commits") or []
+            compare_url = parsed.get("compare")
+
+            notifier = NotificationService()
+            await notifier.notify_git_push(
+                repo_name=repo_name,
+                pusher=pusher,
+                branch=branch,
+                commits=commits,
+                compare_url=compare_url,
+            )
+
+            # Persist incoming push event & commits to database
+            if "/" in repo_name and commits:
+                owner_p, repo_p = repo_name.split("/", 1)
+                event_items = [
+                    {
+                        "id": str(c.get("id") or f"push_{int(datetime.now(UTC).timestamp())}_{i}"),
+                        "type": "PushEvent",
+                        "actor": {
+                            "login": pusher,
+                            "avatar_url": parsed.get("sender", {}).get("avatar_url"),
+                        },
+                        "payload": {"commits": commits, "action": "pushed"},
+                        "created_at": now_iso,
+                    }
+                    for i, c in enumerate(commits)
+                ]
+                await _persist_events_to_db(owner_p, repo_p, event_items)
 
         await ws_manager.broadcast(
             repo_name,
             {
                 "type": "event_stream",
                 "event": {
-                    "event_id": str(
-                        parsed_payload.get("id", f"evt_{int(datetime.now(UTC).timestamp())}")
-                    ),
+                    "event_id": str(parsed.get("id", f"evt_{int(datetime.now(UTC).timestamp())}")),
                     "event_type": request.headers.get("X-GitHub-Event", "PushEvent"),
-                    "actor": parsed_payload.get("sender", {}).get("login", "unknown"),
+                    "actor": parsed.get("sender", {}).get("login", "unknown"),
                     "timestamp": now_iso,
                 },
             },
         )
     except Exception as exc:
-        logger.warning("Error processing webhook payload for broadcast: %s", exc)
+        logger.warning("Error processing webhook payload: %s", exc)
 
     return {"status": "ACCEPTED", "bytes_received": len(payload_body)}
 

@@ -61,3 +61,30 @@ jobs:
       - name: Typecheck
         working-directory: frontend
         run: npx tsc --noEmit
+
+  discord-push-notification:
+    name: GitPulse Automated Discord Notification
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install notification dependencies
+        run: pip install httpx pydantic-settings python-dotenv
+
+      - name: Dispatch Automated Discord Notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python -m backend.src.gitpulse.services.notification_service \
+            --repo "${{ github.repository }}" \
+            --pusher "${{ github.actor }}" \
+            --branch "${{ github.ref_name }}" \
+            --message "${{ github.event.head_commit.message }}" \
+            --sha "${{ github.sha }}"
