@@ -26,7 +26,22 @@ def main():
         gitpulse_root / "backend" / "src" / "gitpulse" / "services" / "notification_service.py"
     )
 
-    python_executable = sys.executable
+    # Convert paths to forward slashes for cross-platform Git Bash compatibility
+    python_posix = str(sys.executable).replace("\\", "/")
+    notif_posix = str(notif_script).replace("\\", "/")
+    root_posix = str(gitpulse_root).replace("\\", "/")
+
+    # Read webhook URL from settings as fallback
+    webhook_url = ""
+    try:
+        sys.path.insert(0, str(gitpulse_root))
+        from backend.src.gitpulse.common.config import settings
+
+        webhook_url = settings.DISCORD_WEBHOOK_URL or ""
+    except Exception:
+        pass
+
+    webhook_arg = f'--webhook-url "{webhook_url}"' if webhook_url else ""
 
     # 1. Create post-commit hook script
     post_commit_script = global_hooks_dir / "post-commit"
@@ -45,7 +60,9 @@ PUSHER=$(git config user.name || echo "developer")
 SHA=$(git rev-parse HEAD 2>/dev/null || echo "head")
 MSG=$(git log -1 --pretty=%B 2>/dev/null | head -n 1 || echo "Commit update")
 
-"{python_executable}" "{notif_script}" \\
+export PYTHONPATH="{root_posix}:$PYTHONPATH"
+"{python_posix}" "{notif_posix}" \\
+    {webhook_arg} \\
     --repo "$REPO_NAME" \\
     --pusher "$PUSHER" \\
     --branch "$BRANCH" \\
@@ -77,7 +94,9 @@ PUSHER=$(git config user.name || echo "developer")
 SHA=$(git rev-parse HEAD 2>/dev/null || echo "head")
 MSG=$(git log -1 --pretty=%B 2>/dev/null | head -n 1 || echo "Git push to remote")
 
-"{python_executable}" "{notif_script}" \\
+export PYTHONPATH="{root_posix}:$PYTHONPATH"
+"{python_posix}" "{notif_posix}" \\
+    {webhook_arg} \\
     --repo "$REPO_NAME" \\
     --pusher "$PUSHER" \\
     --branch "$BRANCH" \\
