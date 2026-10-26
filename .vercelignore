@@ -1,0 +1,23 @@
+# Python backend & environments
+backend/
+agent_runtime/
+data_platform/
+infra/
+.pytest_cache/
+.ruff_cache/
+*.db
+*.sqlite*
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Documentation & Agent configurations
+.agents/
+docs/
+
+# Git & Local
+.git/
+.vscode/
+.env*
+!.env.example

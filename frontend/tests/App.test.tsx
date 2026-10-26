@@ -5,6 +5,8 @@ import {
   createRepoWebSocket,
   fetchDiscoveredRepositories,
   refreshDiscoveredRepositories,
+  getApiBaseUrl,
+  getWsBaseUrl,
 } from '../src/services/api';
 
 describe('GitPulse Frontend Application & API Services', () => {
@@ -95,6 +97,14 @@ describe('GitPulse Frontend Application & API Services', () => {
     );
     expect(res.status).toBe('SYNCHRONIZED');
     expect(res.synced_count).toBe(3);
+  });
+
+  it('resolves default API base and WebSocket URLs correctly', () => {
+    const apiBase = getApiBaseUrl();
+    expect(apiBase).toBe('/api/v1');
+
+    const wsUrl = getWsBaseUrl('apache', 'spark');
+    expect(wsUrl).toContain('/api/v1/ws/repos/apache/spark');
   });
 });
 

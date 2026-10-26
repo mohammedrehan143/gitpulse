@@ -10,6 +10,49 @@ from backend.src.gitpulse.api.main import app
 
 
 @pytest.mark.asyncio
+async def test_root_status_endpoint():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "online"
+        assert data["service"] == "GitPulse Analytics API"
+
+        # Also test system health endpoint
+        health_resp = await client.get("/health")
+        assert health_resp.status_code == 200
+        assert health_resp.json()["status"] == "HEALTHY"
+
+
+@pytest.mark.asyncio
+async def test_cors_headers_for_vercel_and_render():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Vercel deployment preview/production origin
+        res_vercel = await client.get(
+            "/api/v1/health",
+            headers={"Origin": "https://gitpulse-frontend.vercel.app"},
+        )
+        assert res_vercel.status_code == 200
+        assert (
+            res_vercel.headers.get("access-control-allow-origin")
+            == "https://gitpulse-frontend.vercel.app"
+        )
+
+        # Render deployment origin
+        res_render = await client.get(
+            "/api/v1/health",
+            headers={"Origin": "https://gitpulse-dashboard.onrender.com"},
+        )
+        assert res_render.status_code == 200
+        assert (
+            res_render.headers.get("access-control-allow-origin")
+            == "https://gitpulse-dashboard.onrender.com"
+        )
+
+
+@pytest.mark.asyncio
 async def test_health_check_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

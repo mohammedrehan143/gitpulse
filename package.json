@@ -1,0 +1,12 @@
+{
+  "name": "gitpulse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitPulse Root Workspace for Vercel Deployment",
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev",
+    "test": "npm --prefix frontend run test",
+    "lint": "npm --prefix frontend run lint"
+  }
+}

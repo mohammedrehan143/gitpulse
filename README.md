@@ -221,7 +221,17 @@ gitpulse/
 
 ---
 
-## 5. Agent Communication & Quality Gates
+## 5. Cloud Deployment (Vercel & Render)
+
+GitPulse is ready for production cloud hosting:
+- **Frontend SPA**: Deployable to [Vercel](https://vercel.com) via monorepo root or `frontend` subdirectory (`vercel.json`, `.vercelignore`).
+- **FastAPI Backend**: Deployable to [Render](https://render.com) via 1-click Blueprint (`render.yaml`) or manual web service with automatic PostgreSQL dialect adaptation (`postgresql+asyncpg://`) and SQLite fallback.
+
+For complete step-by-step instructions and environment variable settings, see the **[Cloud Deployment Guide](docs/DEPLOYMENT.md)**.
+
+---
+
+## 6. Agent Communication & Quality Gates
 
 All task transitions follow strict contractual handoffs:
 `BACKLOG` -> `READY` -> `IN_PROGRESS` -> `IN_REVIEW` -> `DONE` (or `BLOCKED` / `VERIFICATION_FAILED`)

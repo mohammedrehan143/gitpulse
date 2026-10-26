@@ -4,13 +4,17 @@ services:
   # ----------------------------------------------------------------------------
   - type: web
     name: gitpulse-api
-    env: python
+    runtime: python
     plan: free
     region: oregon
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && pip install -e ."
     startCommand: "uvicorn backend.src.gitpulse.api.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /api/v1/health
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PYTHONPATH
+        value: .
       - key: GITPULSE_ENV
         value: production
       - key: LOG_LEVEL
@@ -23,3 +27,9 @@ services:
         value: sqlite+aiosqlite:///./gitpulse.db
       - key: CORS_ORIGINS
         value: "*"
+      - key: AUTO_DISCOVER_REPOSITORIES
+        value: "true"
+      - key: REPO_DISCOVERY_INTERVAL_MINUTES
+        value: "60"
+      - key: GITHUB_TARGET_REPOS
+        value: "apache/spark,fastapi/fastapi,facebook/react"

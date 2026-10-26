@@ -14,11 +14,18 @@ from backend.src.gitpulse.api.routes import router
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
 from backend.src.gitpulse.services.repository_service import RepositoryService
+from backend.src.gitpulse.storage.database import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle manager for startup inventory sync and periodic discovery."""
+    """Lifecycle manager for startup database initialization and repository discovery."""
+    logger.info("Initializing GitPulse database tables...")
+    try:
+        await init_db()
+    except Exception as exc:
+        logger.warning("Database initialization warning: %s", exc)
+
     logger.info("Initializing GitPulse repository inventory...")
     repo_service = RepositoryService()
     try:
@@ -62,14 +69,39 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS Middleware
+# CORS Middleware - permits configured origins, wildcard, and Vercel/Render preview/prod domains
+cors_origins = (
+    settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.onrender\.com|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/", tags=["system"])
+async def root():
+    """Root operational health and API discovery endpoint."""
+    return {
+        "status": "online",
+        "service": "GitPulse Analytics API",
+        "version": "0.1.0",
+        "docs_url": "/docs",
+        "api_base": "/api/v1",
+        "health_check": "/api/v1/health",
+    }
+
+
+@app.get("/health", tags=["system"])
+async def system_health():
+    """Top-level health check endpoint for cloud monitoring."""
+    return {"status": "HEALTHY", "version": "0.1.0"}
+
 
 # Include API Router
 app.include_router(router)

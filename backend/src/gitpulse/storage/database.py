@@ -10,9 +10,20 @@ class Base(DeclarativeBase):
     pass
 
 
+def get_normalized_database_url(url: str) -> str:
+    """Ensure PostgreSQL URLs use the asyncpg async dialect."""
+    if not url:
+        return "sqlite+aiosqlite:///./gitpulse_dev.db"
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+
 # Use configured DATABASE_URL (defaults to SQLite for local dev)
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    get_normalized_database_url(settings.DATABASE_URL),
     echo=False,
     future=True,
 )
@@ -27,6 +38,10 @@ AsyncSessionLocal = async_sessionmaker(
 async def init_db() -> None:
     """Initializes tables in database schema with SQLite auto-fallback."""
     global engine, AsyncSessionLocal
+
+    # Ensure all ORM models are registered with Base.metadata before table creation
+    import backend.src.gitpulse.storage.models  # noqa: F401
+
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

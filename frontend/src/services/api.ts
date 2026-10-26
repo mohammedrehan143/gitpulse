@@ -1,9 +1,43 @@
 import { VelocityResponse, EventsResponse, RepositoriesResponse, RefreshRepositoriesResponse } from '../types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '');
+export function getApiBaseUrl(): string {
+  const envUrl = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/$/, '');
+  if (!envUrl) {
+    return '/api/v1';
+  }
+  if (!envUrl.endsWith('/api/v1')) {
+    return `${envUrl}/api/v1`;
+  }
+  return envUrl;
+}
+
+export function getWsBaseUrl(owner: string, repo: string): string {
+  const envWsUrl = (import.meta.env.VITE_WS_BASE_URL || '').trim().replace(/\/$/, '');
+  if (envWsUrl) {
+    let base = envWsUrl;
+    if (!base.endsWith('/ws')) {
+      base = base.endsWith('/api/v1') ? `${base}/ws` : `${base}/api/v1/ws`;
+    }
+    return `${base}/repos/${owner}/${repo}`;
+  }
+
+  const apiBase = getApiBaseUrl();
+  if (apiBase.startsWith('http://') || apiBase.startsWith('https://')) {
+    const wsPrefix = apiBase.startsWith('https://') ? 'wss://' : 'ws://';
+    const cleanHostPath = apiBase.replace(/^https?:\/\//, '');
+    return `${wsPrefix}${cleanHostPath}/ws/repos/${owner}/${repo}`;
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/api/v1/ws/repos/${owner}/${repo}`;
+  }
+
+  return `ws://localhost:8000/api/v1/ws/repos/${owner}/${repo}`;
+}
 
 export async function fetchDiscoveredRepositories(): Promise<RepositoriesResponse> {
-  const url = `${API_BASE_URL}/repos`;
+  const url = `${getApiBaseUrl()}/repos`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch repositories: ${res.statusText}`);
@@ -12,7 +46,7 @@ export async function fetchDiscoveredRepositories(): Promise<RepositoriesRespons
 }
 
 export async function refreshDiscoveredRepositories(): Promise<RefreshRepositoriesResponse> {
-  const url = `${API_BASE_URL}/repos/refresh`;
+  const url = `${getApiBaseUrl()}/repos/refresh`;
   const res = await fetch(url, { method: 'POST' });
   if (!res.ok) {
     throw new Error(`Failed to refresh repositories: ${res.statusText}`);
@@ -26,7 +60,7 @@ export async function fetchRepositoryVelocity(
   timeframe = '30d',
   granularity = 'day'
 ): Promise<VelocityResponse> {
-  const url = `${API_BASE_URL}/repos/${owner}/${repo}/velocity?timeframe=${timeframe}&granularity=${granularity}`;
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/velocity?timeframe=${timeframe}&granularity=${granularity}`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch velocity metrics: ${res.statusText}`);
@@ -40,7 +74,7 @@ export async function fetchRepositoryEvents(
   limit = 20,
   offset = 0
 ): Promise<EventsResponse> {
-  const url = `${API_BASE_URL}/repos/${owner}/${repo}/events?limit=${limit}&offset=${offset}`;
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/events?limit=${limit}&offset=${offset}`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch events: ${res.statusText}`);
@@ -57,9 +91,7 @@ export function createRepoWebSocket(
   if (typeof window === 'undefined' || !window.WebSocket) {
     return null;
   }
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  const wsUrl = `${protocol}//${host}/api/v1/ws/repos/${owner}/${repo}`;
+  const wsUrl = getWsBaseUrl(owner, repo);
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {

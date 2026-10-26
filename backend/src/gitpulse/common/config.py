@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     PORT: int | None = None
     CORS_ORIGINS: str | list[str] = ["http://localhost:5173", "http://localhost:3000", "*"]
 
-    @field_validator("CORS_ORIGINS")
+    @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Any) -> list[str]:
         if isinstance(v, str):
@@ -37,6 +37,17 @@ class Settings(BaseSettings):
                 except Exception:
                     pass
             return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: Any) -> str:
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+asyncpg://", 1)
+            if v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                return v.replace("postgresql://", "postgresql+asyncpg://", 1)
         return v
 
     @property
