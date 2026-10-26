@@ -33,6 +33,8 @@ from backend.src.gitpulse.api.schemas import (
     RepositoriesResponse,
     RepositoryRef,
     TimelinePoint,
+    UniversalPushNotificationRequest,
+    UniversalPushNotificationResponse,
     VelocityResponse,
     VelocitySummary,
 )
@@ -528,6 +530,30 @@ async def handle_github_webhook(
         logger.warning("Error processing webhook payload: %s", exc)
 
     return {"status": "ACCEPTED", "bytes_received": len(payload_body)}
+
+
+@router.post("/notify/push", response_model=UniversalPushNotificationResponse)
+async def universal_push_notify(
+    payload: UniversalPushNotificationRequest,
+) -> UniversalPushNotificationResponse:
+    """Universal notification endpoint that sends rich Discord alerts for ANY pushed repository."""
+    notifier = NotificationService(discord_webhook_url=payload.discord_webhook_url)
+    commits_list = payload.commits or []
+    if not commits_list and payload.message:
+        commits_list = [{"id": payload.sha or "head", "message": payload.message}]
+
+    delivered = await notifier.notify_git_push(
+        repo_name=payload.repo,
+        pusher=payload.pusher,
+        branch=payload.branch,
+        commits=commits_list,
+        compare_url=payload.compare_url,
+    )
+    return UniversalPushNotificationResponse(
+        status="SUCCESS" if delivered else "SKIPPED",
+        delivered=delivered,
+        repository=payload.repo,
+    )
 
 
 @router.websocket("/ws/repos/{owner}/{repo}")

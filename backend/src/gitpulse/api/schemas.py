@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -107,3 +109,20 @@ class AIInsightsResponse(BaseModel):
     repository: str
     model: str
     insights: str
+
+
+class UniversalPushNotificationRequest(BaseModel):
+    repo: str
+    pusher: str = "developer"
+    branch: str = "main"
+    message: str | None = None
+    sha: str | None = None
+    commits: list[dict[str, Any]] | None = None
+    compare_url: str | None = None
+    discord_webhook_url: str | None = None
+
+
+class UniversalPushNotificationResponse(BaseModel):
+    status: str
+    delivered: bool
+    repository: str

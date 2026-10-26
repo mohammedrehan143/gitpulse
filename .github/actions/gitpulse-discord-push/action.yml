@@ -1,0 +1,52 @@
+name: "GitPulse Universal Discord Push Alert"
+description: "Sends an automated rich Discord activity notification for any repository push via GitPulse"
+author: "GitPulse Engineering Team"
+
+inputs:
+  discord_webhook_url:
+    description: "Discord Webhook URL"
+    required: true
+  repository:
+    description: "Repository name (defaults to current github.repository)"
+    required: false
+    default: ${{ github.repository }}
+  pusher:
+    description: "Pusher username (defaults to github.actor)"
+    required: false
+    default: ${{ github.actor }}
+  branch:
+    description: "Target branch (defaults to github.ref_name)"
+    required: false
+    default: ${{ github.ref_name }}
+  message:
+    description: "Head commit message"
+    required: false
+    default: ${{ github.event.head_commit.message }}
+  sha:
+    description: "Head commit SHA"
+    required: false
+    default: ${{ github.sha }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install httpx pydantic-settings python-dotenv
+
+    - name: Dispatch GitPulse Push Alert
+      shell: bash
+      env:
+        DISCORD_WEBHOOK_URL: ${{ inputs.discord_webhook_url }}
+      run: |
+        python -m backend.src.gitpulse.services.notification_service \
+          --repo "${{ inputs.repository }}" \
+          --pusher "${{ inputs.pusher }}" \
+          --branch "${{ inputs.branch }}" \
+          --message "${{ inputs.message }}" \
+          --sha "${{ inputs.sha }}"
