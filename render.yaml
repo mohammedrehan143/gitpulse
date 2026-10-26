@@ -8,7 +8,7 @@ services:
     plan: free
     region: oregon
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && pip install -e ."
-    startCommand: "uvicorn backend.src.gitpulse.api.main:app --host 0.0.0.0 --port $PORT"
+    startCommand: "uvicorn --app-dir . main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /api/v1/health
     envVars:
       - key: PYTHON_VERSION

@@ -1,1 +1,1 @@
-web: uvicorn backend.src.gitpulse.api.main:app --host 0.0.0.0 --port $PORT
+web: uvicorn --app-dir . main:app --host 0.0.0.0 --port $PORT

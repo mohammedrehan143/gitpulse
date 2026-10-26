@@ -110,8 +110,11 @@ app.include_router(router)
 def start() -> None:
     """Entry point to launch the uvicorn server."""
     port = int(os.environ.get("PORT", str(settings.server_port)))
+    app_target = (
+        "backend.src.gitpulse.api.main:app" if settings.GITPULSE_ENV == "development" else app
+    )
     uvicorn.run(
-        "backend.src.gitpulse.api.main:app",
+        app_target,
         host="0.0.0.0",
         port=port,
         reload=settings.GITPULSE_ENV == "development",
