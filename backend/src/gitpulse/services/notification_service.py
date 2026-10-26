@@ -56,7 +56,10 @@ class NotificationService:
             try:
                 resp = await client.post(self.webhook_url, json=payload)
                 if resp.status_code in (200, 204):
-                    logger.info("Discord notification sent successfully: %s", title)
+                    logger.info(
+                        "Discord notification sent successfully: %s",
+                        title.encode("ascii", "ignore").decode(),
+                    )
                     return True
                 else:
                     logger.warning(
