@@ -8,7 +8,7 @@
   - `frontend-orchestrator` (Level 1 Domain Lead - Web & UI)
   - `software-architect` (Shared Specialist)
   - `integration-engineer` (Shared Specialist)
-  - `devops-engineer` (Shared Specialist)
+  - `devops-engineer` (Shared Specialis
   - `independent-code-reviewer` (Shared Specialist)
 
 ## 2. Core Directives
