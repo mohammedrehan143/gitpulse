@@ -41,10 +41,10 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
       <div
         style={{
           padding: '24px',
-          backgroundColor: '#0f172a',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid #1e293b',
-          color: '#94a3b8',
+          border: '1px solid #27272a',
+          color: '#a1a1aa',
           minHeight: '280px',
           display: 'flex',
           alignItems: 'center',
@@ -66,25 +66,26 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
     <div
       style={{
         padding: '24px',
-        backgroundColor: '#0f172a',
+        backgroundColor: '#121212',
         borderRadius: '12px',
-        border: '1px solid #1e293b',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #27272a',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
       }}
     >
       {/* Header */}
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <GitPullRequest size={20} color="#10b981" />
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>
+          <GitPullRequest size={20} color="#ef4444" />
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
             Pull-Request First-Review Delay Analysis
           </h3>
           <span
             style={{
               fontSize: '11px',
               padding: '2px 8px',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              color: '#34d399',
+              backgroundColor: '#18181b',
+              color: '#ef4444',
+              border: '1px solid #ef4444',
               borderRadius: '9999px',
               fontWeight: 600,
             }}
@@ -92,7 +93,7 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
             Right-Censoring Aware
           </span>
         </div>
-        <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>
+        <p style={{ margin: 0, fontSize: '13px', color: '#a1a1aa' }}>
           Evaluates PR size vs turnaround turnaround time, Spearman correlations, and predictive first-review hours
         </p>
       </div>
@@ -105,27 +106,28 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
             gap: '16px',
             marginBottom: '16px',
             padding: '10px 16px',
-            backgroundColor: '#1e293b',
+            backgroundColor: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '8px',
             fontSize: '13px',
-            color: '#94a3b8',
+            color: '#a1a1aa',
             flexWrap: 'wrap',
           }}
         >
           <div>
-            Analyzed PRs: <strong style={{ color: '#f8fafc' }}>{censoring.total_prs_analyzed}</strong>
+            Analyzed PRs: <strong style={{ color: '#ffffff' }}>{censoring.total_prs_analyzed}</strong>
           </div>
           <div>
-            Reviewed: <strong style={{ color: '#34d399' }}>{censoring.reviewed_prs}</strong>
+            Reviewed: <strong style={{ color: '#ffffff' }}>{censoring.reviewed_prs}</strong>
           </div>
           <div>
-            Unreviewed (Censored): <strong style={{ color: '#f59e0b' }}>{censoring.unreviewed_censored_prs} ({censoring.censoring_rate_pct}%)</strong>
+            Unreviewed (Censored): <strong style={{ color: '#ef4444' }}>{censoring.unreviewed_censored_prs} ({censoring.censoring_rate_pct}%)</strong>
           </div>
           {stats?.overall_median_delay_hours !== undefined && (
-            <div style={{ marginLeft: 'auto', color: '#f8fafc' }}>
-              Overall Median First Review: <strong style={{ color: '#34d399' }}>{stats.overall_median_delay_hours}h</strong>
+            <div style={{ marginLeft: 'auto', color: '#ffffff' }}>
+              Overall Median First Review: <strong style={{ color: '#ef4444' }}>{stats.overall_median_delay_hours}h</strong>
               {training?.best_model && (
-                <span style={{ marginLeft: '8px', fontSize: '11px', color: '#94a3b8' }}>
+                <span style={{ marginLeft: '8px', fontSize: '11px', color: '#a1a1aa' }}>
                   (Model: {training.best_model})
                 </span>
               )}
@@ -137,7 +139,7 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
       {/* Size Bracket Turnaround Grid */}
       {brackets.length > 0 && (
         <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, marginBottom: '8px' }}>
+          <div style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, marginBottom: '8px' }}>
             Turnaround by PR Size Bracket:
           </div>
           <div
@@ -152,17 +154,17 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
                 key={b.bracket}
                 style={{
                   padding: '10px 12px',
-                  backgroundColor: '#1e293b',
+                  backgroundColor: '#18181b',
                   borderRadius: '6px',
-                  border: '1px solid #334155',
+                  border: '1px solid #27272a',
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>{b.bracket}</div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
+                <div style={{ fontSize: '11px', color: '#a1a1aa', marginBottom: '4px' }}>{b.bracket}</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>
                   {b.median_delay_hours}h
                 </div>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>{b.count} PRs</div>
+                <div style={{ fontSize: '10px', color: '#71717a' }}>{b.count} PRs</div>
               </div>
             ))}
           </div>
@@ -174,15 +176,16 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
         <div
           style={{
             fontSize: '12px',
-            color: '#94a3b8',
+            color: '#a1a1aa',
             marginBottom: '16px',
             padding: '8px 12px',
-            backgroundColor: 'rgba(30, 41, 59, 0.4)',
+            backgroundColor: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '6px',
           }}
         >
           Lines changed vs Delay Correlation (Spearman ρ):{' '}
-          <strong style={{ color: '#f8fafc' }}>{correlations.total_lines_changed.spearman_correlation}</strong>{' '}
+          <strong style={{ color: '#ffffff' }}>{correlations.total_lines_changed.spearman_correlation}</strong>{' '}
           (p={correlations.total_lines_changed.p_value},{' '}
           {correlations.total_lines_changed.statistically_significant ? 'Statistically Significant' : 'Not Significant'})
         </div>
@@ -191,7 +194,7 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
       {/* Interactive Predictor Form */}
       <form onSubmit={handlePredictSubmit} style={{ marginTop: '16px' }}>
         <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>
+          <label style={{ display: 'block', fontSize: '12px', color: '#a1a1aa', marginBottom: '6px', fontWeight: 600 }}>
             Simulate Inbound Pull Request:
           </label>
           <input
@@ -203,10 +206,10 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
               width: '100%',
               boxSizing: 'border-box',
               padding: '8px 12px',
-              backgroundColor: '#1e293b',
-              border: '1px solid #334155',
+              backgroundColor: '#18181b',
+              border: '1px solid #27272a',
               borderRadius: '6px',
-              color: '#f8fafc',
+              color: '#ffffff',
               fontSize: '13px',
               outline: 'none',
               marginBottom: '10px',
@@ -215,7 +218,7 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
             <div>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Additions (+):</span>
+              <span style={{ fontSize: '11px', color: '#a1a1aa' }}>Additions (+):</span>
               <input
                 type="number"
                 min="0"
@@ -225,16 +228,16 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
                   width: '100%',
                   boxSizing: 'border-box',
                   padding: '6px 8px',
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
+                  backgroundColor: '#18181b',
+                  border: '1px solid #27272a',
                   borderRadius: '6px',
-                  color: '#34d399',
+                  color: '#ffffff',
                   fontSize: '12px',
                 }}
               />
             </div>
             <div>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Deletions (-):</span>
+              <span style={{ fontSize: '11px', color: '#a1a1aa' }}>Deletions (-):</span>
               <input
                 type="number"
                 min="0"
@@ -244,8 +247,8 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
                   width: '100%',
                   boxSizing: 'border-box',
                   padding: '6px 8px',
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
+                  backgroundColor: '#18181b',
+                  border: '1px solid #27272a',
                   borderRadius: '6px',
                   color: '#ef4444',
                   fontSize: '12px',
@@ -253,7 +256,7 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
               />
             </div>
             <div>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Changed Files:</span>
+              <span style={{ fontSize: '11px', color: '#a1a1aa' }}>Changed Files:</span>
               <input
                 type="number"
                 min="1"
@@ -263,10 +266,10 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
                   width: '100%',
                   boxSizing: 'border-box',
                   padding: '6px 8px',
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
+                  backgroundColor: '#18181b',
+                  border: '1px solid #27272a',
                   borderRadius: '6px',
-                  color: '#f8fafc',
+                  color: '#ffffff',
                   fontSize: '12px',
                 }}
               />
@@ -278,7 +281,7 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
                 style={{
                   width: '100%',
                   padding: '7px 12px',
-                  backgroundColor: '#10b981',
+                  backgroundColor: '#dc2626',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '6px',
@@ -305,9 +308,9 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
         <div
           style={{
             padding: '16px',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            backgroundColor: '#18181b',
             borderRadius: '8px',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
+            border: '1px solid #dc2626',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -317,28 +320,28 @@ export const PRIntelligenceCard: React.FC<PRIntelligenceCardProps> = ({
           }}
         >
           <div>
-            <div style={{ fontSize: '11px', color: '#34d399', fontWeight: 600, textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600, textTransform: 'uppercase' }}>
               Estimated Time to First Review
             </div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#f8fafc', margin: '4px 0' }}>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff', margin: '4px 0' }}>
               ~{prediction.predicted_delay_hours} Hours
             </div>
             {prediction.lower_bound_hours && prediction.upper_bound_hours && (
-              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '12px', color: '#a1a1aa' }}>
                 Uncertainty Range: {prediction.lower_bound_hours}h – {prediction.upper_bound_hours}h
               </div>
             )}
           </div>
 
-          <div style={{ textAlign: 'right', fontSize: '12px', color: '#94a3b8' }}>
-            <div style={{ color: '#34d399', fontWeight: 600 }}>{prediction.confidence_tier}</div>
+          <div style={{ textAlign: 'right', fontSize: '12px', color: '#a1a1aa' }}>
+            <div style={{ color: '#ffffff', fontWeight: 600 }}>{prediction.confidence_tier}</div>
             <div>Model: {prediction.best_model || 'HistGradientBoosting'}</div>
           </div>
         </div>
       )}
 
       {predictError && (
-        <div style={{ color: '#f87171', fontSize: '13px', marginTop: '8px' }}>
+        <div style={{ color: '#ef4444', fontSize: '13px', marginTop: '8px' }}>
           {predictError}
         </div>
       )}

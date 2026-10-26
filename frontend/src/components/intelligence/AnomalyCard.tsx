@@ -22,10 +22,10 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
       <div
         style={{
           padding: '24px',
-          backgroundColor: '#0f172a',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid #1e293b',
-          color: '#94a3b8',
+          border: '1px solid #27272a',
+          color: '#a1a1aa',
           minHeight: '280px',
           display: 'flex',
           alignItems: 'center',
@@ -42,17 +42,17 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
       <div
         style={{
           padding: '24px',
-          backgroundColor: '#0f172a',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid #1e293b',
-          color: '#f87171',
+          border: '1px solid #27272a',
+          color: '#ef4444',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <AlertTriangle size={18} />
           <span style={{ fontWeight: 600 }}>Anomaly Detection Unavailable</span>
         </div>
-        <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
+        <p style={{ margin: 0, color: '#a1a1aa', fontSize: '14px' }}>
           {error || 'Unable to scan repository timeline for activity anomalies.'}
         </p>
       </div>
@@ -67,19 +67,19 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
         return {
           bg: 'rgba(239, 68, 68, 0.15)',
           color: '#ef4444',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
+          border: '1px solid #ef4444',
         };
       case 'MEDIUM':
         return {
-          bg: 'rgba(245, 158, 11, 0.15)',
-          color: '#f59e0b',
-          border: '1px solid rgba(245, 158, 11, 0.3)',
+          bg: '#18181b',
+          color: '#ffffff',
+          border: '1px solid #3f3f46',
         };
       default:
         return {
-          bg: 'rgba(56, 189, 248, 0.15)',
-          color: '#38bdf8',
-          border: '1px solid rgba(56, 189, 248, 0.3)',
+          bg: '#18181b',
+          color: '#a1a1aa',
+          border: '1px solid #27272a',
         };
     }
   };
@@ -88,10 +88,10 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
     <div
       style={{
         padding: '24px',
-        backgroundColor: '#0f172a',
+        backgroundColor: '#121212',
         borderRadius: '12px',
-        border: '1px solid #1e293b',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #27272a',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
       }}
     >
       {/* Header */}
@@ -107,16 +107,17 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <ShieldAlert size={20} color="#f59e0b" />
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>
+            <ShieldAlert size={20} color="#ef4444" />
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
               Repository Activity Anomaly Detection
             </h3>
             <span
               style={{
                 fontSize: '11px',
                 padding: '2px 8px',
-                backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                color: '#f59e0b',
+                backgroundColor: '#18181b',
+                color: '#ef4444',
+                border: '1px solid #ef4444',
                 borderRadius: '9999px',
                 fontWeight: 600,
               }}
@@ -124,23 +125,23 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
               Rolling MAD & Isolation Forest
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: '#a1a1aa' }}>
             Surfaces statistical surges and drops based on 14-day rolling historical medians
           </p>
         </div>
 
         {/* Threshold sensitivity control */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Sliders size={16} color="#94a3b8" />
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Sensitivity:</span>
+          <Sliders size={16} color="#a1a1aa" />
+          <span style={{ fontSize: '12px', color: '#a1a1aa' }}>Sensitivity:</span>
           <select
             value={threshold}
             onChange={(e) => onThresholdChange(parseFloat(e.target.value))}
             style={{
               padding: '4px 8px',
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
+              backgroundColor: '#18181b',
+              color: '#ffffff',
+              border: '1px solid #27272a',
               borderRadius: '6px',
               fontSize: '12px',
               cursor: 'pointer',
@@ -160,21 +161,22 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
           gap: '16px',
           marginBottom: '16px',
           padding: '10px 16px',
-          backgroundColor: '#1e293b',
+          backgroundColor: '#18181b',
+          border: '1px solid #27272a',
           borderRadius: '8px',
           fontSize: '13px',
-          color: '#94a3b8',
+          color: '#a1a1aa',
         }}
       >
         <div>
-          Days Analyzed: <strong style={{ color: '#f8fafc' }}>{data.total_days_evaluated}</strong>
+          Days Analyzed: <strong style={{ color: '#ffffff' }}>{data.total_days_evaluated}</strong>
         </div>
         <div>
-          Rolling Baseline: <strong style={{ color: '#f8fafc' }}>{data.rolling_window_days} Days</strong>
+          Rolling Baseline: <strong style={{ color: '#ffffff' }}>{data.rolling_window_days} Days</strong>
         </div>
         <div>
           Anomalies Detected:{' '}
-          <strong style={{ color: anomalies.length > 0 ? '#f59e0b' : '#34d399' }}>
+          <strong style={{ color: anomalies.length > 0 ? '#ef4444' : '#ffffff' }}>
             {data.total_anomalies}
           </strong>
         </div>
@@ -186,16 +188,16 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
           style={{
             padding: '32px 16px',
             textAlign: 'center',
-            backgroundColor: 'rgba(30, 41, 59, 0.4)',
+            backgroundColor: '#18181b',
             borderRadius: '8px',
-            border: '1px dashed #334155',
+            border: '1px dashed #27272a',
           }}
         >
-          <CheckCircle size={28} color="#34d399" style={{ margin: '0 auto 8px auto' }} />
-          <div style={{ color: '#f8fafc', fontWeight: 600, fontSize: '14px' }}>
+          <CheckCircle size={28} color="#ffffff" style={{ margin: '0 auto 8px auto' }} />
+          <div style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px' }}>
             No Anomalies Detected
           </div>
-          <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '12px' }}>
+          <p style={{ margin: '4px 0 0 0', color: '#a1a1aa', fontSize: '12px' }}>
             Activity is operating within expected rolling variance thresholds.
           </p>
         </div>
@@ -208,9 +210,9 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
                 key={`${anom.date}-${anom.metric}-${idx}`}
                 style={{
                   padding: '12px 16px',
-                  backgroundColor: '#1e293b',
+                  backgroundColor: '#18181b',
                   borderRadius: '8px',
-                  border: '1px solid #334155',
+                  border: '1px solid #27272a',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -220,7 +222,7 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
               >
                 <div style={{ flex: 1, minWidth: '240px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 600, color: '#f8fafc', fontSize: '13px' }}>
+                    <span style={{ fontWeight: 600, color: '#ffffff', fontSize: '13px' }}>
                       {anom.date}
                     </span>
                     <span
@@ -236,15 +238,15 @@ export const AnomalyCard: React.FC<AnomalyCardProps> = ({
                     >
                       {anom.severity}
                     </span>
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    <span style={{ fontSize: '12px', color: '#a1a1aa' }}>
                       Score: <strong>{anom.anomaly_score}</strong>
                     </span>
                   </div>
-                  <div style={{ fontSize: '13px', color: '#cbd5e1' }}>{anom.explanation}</div>
+                  <div style={{ fontSize: '13px', color: '#ffffff' }}>{anom.explanation}</div>
                 </div>
 
-                <div style={{ textAlign: 'right', fontSize: '12px', color: '#94a3b8' }}>
-                  <div>Observed: <strong style={{ color: '#f8fafc' }}>{anom.observed_value}</strong></div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#a1a1aa' }}>
+                  <div>Observed: <strong style={{ color: '#ffffff' }}>{anom.observed_value}</strong></div>
                   <div>Baseline: {anom.baseline_median}</div>
                 </div>
               </div>

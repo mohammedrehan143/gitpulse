@@ -46,7 +46,7 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
             style={{
               fontSize: '0.95rem',
               fontWeight: 700,
-              color: '#38bdf8',
+              color: '#ef4444',
               margin: '0.75rem 0 0.35rem 0',
               display: 'flex',
               alignItems: 'center',
@@ -70,11 +70,11 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               gap: '0.5rem',
               margin: '0.25rem 0',
               fontSize: '0.875rem',
-              color: '#e2e8f0',
+              color: '#ffffff',
               lineHeight: 1.5,
             }}
           >
-            <span style={{ color: '#06b6d4', marginTop: '0.15rem' }}>•</span>
+            <span style={{ color: '#ef4444', marginTop: '0.15rem' }}>•</span>
             <span>{content}</span>
           </div>
         );
@@ -94,11 +94,12 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               gridTemplateColumns: `repeat(${cols.length}, 1fr)`,
               gap: '0.5rem',
               padding: '0.35rem 0.5rem',
-              backgroundColor: 'rgba(30, 41, 59, 0.5)',
+              backgroundColor: '#18181b',
+              border: '1px solid #27272a',
               borderRadius: '4px',
               margin: '0.2rem 0',
               fontSize: '0.8rem',
-              color: '#cbd5e1',
+              color: '#ffffff',
             }}
           >
             {cols.map((col, cIdx) => (
@@ -116,7 +117,7 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
           style={{
             margin: '0.35rem 0',
             fontSize: '0.875rem',
-            color: '#cbd5e1',
+            color: '#a1a1aa',
             lineHeight: 1.55,
           }}
         >
@@ -129,12 +130,12 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
   return (
     <div
       style={{
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.75) 100%)',
-        border: '1px solid rgba(56, 189, 248, 0.25)',
+        backgroundColor: '#121212',
+        border: '1px solid #27272a',
         borderRadius: '12px',
         padding: '1.5rem',
         marginBottom: '2rem',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -148,7 +149,7 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
           width: '180px',
           height: '180px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(220, 38, 38, 0.08) 0%, transparent 70%)',
           pointerEvents: 'none',
         }}
       />
@@ -169,19 +170,18 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+              backgroundColor: '#dc2626',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#ffffff',
-              boxShadow: '0 0 15px rgba(6, 182, 212, 0.4)',
             }}
           >
             <Sparkles size={20} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#ffffff' }}>
                 Engineering Velocity Copilot
               </h3>
               <span
@@ -190,9 +190,9 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
                   fontWeight: 600,
                   padding: '0.15rem 0.5rem',
                   borderRadius: '9999px',
-                  backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                  color: '#38bdf8',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  backgroundColor: '#18181b',
+                  color: '#ef4444',
+                  border: '1px solid #ef4444',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.25rem',
@@ -201,9 +201,9 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
                 <Bot size={11} /> Groq AI
               </span>
             </div>
-            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#a1a1aa' }}>
               Real-time engineering intelligence, PR turnaround diagnosis & bottleneck insights for{' '}
-              <strong style={{ color: '#38bdf8' }}>{repoFullName}</strong>
+              <strong style={{ color: '#ffffff' }}>{repoFullName}</strong>
             </p>
           </div>
         </div>
@@ -221,9 +221,9 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
                 fontSize: '0.8rem',
                 fontWeight: 500,
                 borderRadius: '8px',
-                backgroundColor: 'rgba(30, 41, 59, 0.8)',
-                color: copied ? '#34d399' : '#cbd5e1',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
+                backgroundColor: '#18181b',
+                color: copied ? '#ef4444' : '#ffffff',
+                border: '1px solid #27272a',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
@@ -245,17 +245,14 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               fontSize: '0.825rem',
               fontWeight: 600,
               borderRadius: '8px',
-              background: loading
-                ? '#334155'
-                : 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+              backgroundColor: loading ? '#27272a' : '#dc2626',
               color: '#ffffff',
               border: 'none',
               cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: loading ? 'none' : '0 2px 10px rgba(6, 182, 212, 0.3)',
               transition: 'all 0.2s',
             }}
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             {loading ? 'Synthesizing...' : insights ? 'Refresh Insights' : 'Generate Insights'}
           </button>
 
@@ -266,9 +263,9 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               style={{
                 padding: '0.45rem',
                 borderRadius: '8px',
-                backgroundColor: 'rgba(30, 41, 59, 0.8)',
-                color: '#94a3b8',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
+                backgroundColor: '#18181b',
+                color: '#a1a1aa',
+                border: '1px solid #27272a',
                 cursor: 'pointer',
               }}
             >
@@ -302,9 +299,9 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
           style={{
             padding: '2rem',
             textAlign: 'center',
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backgroundColor: '#18181b',
             borderRadius: '8px',
-            border: '1px dashed rgba(56, 189, 248, 0.3)',
+            border: '1px dashed #ef4444',
           }}
         >
           <div
@@ -313,10 +310,10 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               alignItems: 'center',
               gap: '0.6rem',
               fontSize: '0.9rem',
-              color: '#38bdf8',
+              color: '#ef4444',
             }}
           >
-            <Cpu size={18} className="animate-pulse" />
+            <Cpu size={18} />
             <span>Consulting Groq AI (`openai/gpt-oss-120b`)... Analyzing commit velocity and code churn</span>
           </div>
         </div>
@@ -326,9 +323,9 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
         <div
           style={{
             padding: '1.5rem',
-            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+            backgroundColor: '#18181b',
             borderRadius: '8px',
-            border: '1px dashed rgba(148, 163, 184, 0.2)',
+            border: '1px dashed #27272a',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -337,10 +334,10 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
           }}
         >
           <div>
-            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#e2e8f0' }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#ffffff' }}>
               No velocity insights generated yet for this repository
             </div>
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.8rem', color: '#a1a1aa', marginTop: '0.2rem' }}>
               Click "Generate Insights" to run an automated architectural audit of recent PR throughput, author distribution, and code churn.
             </div>
           </div>
@@ -354,7 +351,7 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               fontSize: '0.8rem',
               fontWeight: 600,
               borderRadius: '6px',
-              backgroundColor: '#0284c7',
+              backgroundColor: '#dc2626',
               color: '#ffffff',
               border: 'none',
               cursor: 'pointer',
@@ -368,8 +365,8 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
       {!loading && insights && expanded && (
         <div
           style={{
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(148, 163, 184, 0.15)',
+            backgroundColor: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '8px',
             padding: '1.25rem',
             maxHeight: '400px',
@@ -383,13 +380,13 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
               alignItems: 'center',
               marginBottom: '0.75rem',
               paddingBottom: '0.5rem',
-              borderBottom: '1px solid rgba(148, 163, 184, 0.15)',
+              borderBottom: '1px solid #27272a',
             }}
           >
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Bot size={12} /> Model: <strong style={{ color: '#e2e8f0' }}>{insights.model}</strong>
+            <span style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Bot size={12} /> Model: <strong style={{ color: '#ffffff' }}>{insights.model}</strong>
             </span>
-            <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>
               Live Analysis Complete
             </span>
           </div>

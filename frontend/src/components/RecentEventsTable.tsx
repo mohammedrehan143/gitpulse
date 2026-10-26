@@ -34,50 +34,50 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
         return {
           label: 'New Git Pushed',
           icon: <GitCommit size={13} />,
-          bg: 'rgba(56, 189, 248, 0.12)',
-          border: 'rgba(56, 189, 248, 0.35)',
-          color: '#38bdf8',
+          bg: 'rgba(220, 38, 38, 0.15)',
+          border: '#dc2626',
+          color: '#ef4444',
         };
       case 'PullRequestEvent':
         return {
           label: 'New Git Pulled',
           icon: <GitPullRequest size={13} />,
-          bg: 'rgba(168, 85, 247, 0.12)',
-          border: 'rgba(168, 85, 247, 0.35)',
-          color: '#c084fc',
+          bg: '#18181b',
+          border: '#27272a',
+          color: '#ffffff',
         };
       case 'CommitCommentEvent':
       case 'CommitEvent':
         return {
           label: 'Committed',
           icon: <GitCommit size={13} />,
-          bg: 'rgba(16, 185, 129, 0.12)',
-          border: 'rgba(16, 185, 129, 0.35)',
-          color: '#34d399',
+          bg: 'rgba(220, 38, 38, 0.12)',
+          border: '#ef4444',
+          color: '#ef4444',
         };
       case 'IssuesEvent':
         return {
           label: 'Issue',
           icon: <AlertCircle size={13} />,
-          bg: 'rgba(245, 158, 11, 0.12)',
-          border: 'rgba(245, 158, 11, 0.35)',
-          color: '#fbbf24',
+          bg: '#18181b',
+          border: '#27272a',
+          color: '#ffffff',
         };
       case 'WatchEvent':
         return {
           label: 'Starred',
           icon: <Star size={13} />,
-          bg: 'rgba(234, 179, 8, 0.12)',
-          border: 'rgba(234, 179, 8, 0.35)',
-          color: '#fde047',
+          bg: '#18181b',
+          border: '#27272a',
+          color: '#ffffff',
         };
       default:
         return {
           label: type.replace('Event', ''),
           icon: <GitCommit size={13} />,
-          bg: 'rgba(148, 163, 184, 0.12)',
-          border: 'rgba(148, 163, 184, 0.35)',
-          color: '#94a3b8',
+          bg: '#18181b',
+          border: '#27272a',
+          color: '#a1a1aa',
         };
     }
   };
@@ -108,25 +108,25 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
     if (evt.event_type === 'PushEvent') {
       return {
         label: 'COMMITTED',
-        bg: 'rgba(56, 189, 248, 0.15)',
-        color: '#38bdf8',
-        border: '1px solid rgba(56, 189, 248, 0.25)',
+        bg: 'rgba(220, 38, 38, 0.15)',
+        color: '#ef4444',
+        border: '1px solid #ef4444',
       };
     }
     if (evt.event_type === 'PullRequestEvent') {
       return {
         label: evt.action ? `PULLED: ${evt.action.toUpperCase()}` : 'PULLED',
-        bg: 'rgba(168, 85, 247, 0.15)',
-        color: '#c084fc',
-        border: '1px solid rgba(168, 85, 247, 0.25)',
+        bg: '#18181b',
+        color: '#ffffff',
+        border: '1px solid #27272a',
       };
     }
     if (evt.action) {
       return {
         label: evt.action.toUpperCase(),
-        bg: 'rgba(30, 41, 59, 0.8)',
-        color: '#94a3b8',
-        border: '1px solid rgba(148, 163, 184, 0.15)',
+        bg: '#18181b',
+        color: '#a1a1aa',
+        border: '1px solid #27272a',
       };
     }
     return null;
@@ -149,10 +149,10 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
         style={{
           padding: '3rem',
           textAlign: 'center',
-          color: '#94a3b8',
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          color: '#a1a1aa',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          border: '1px solid #27272a',
         }}
       >
         Loading recent repository events...
@@ -163,12 +163,11 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
   return (
     <div
       style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(148, 163, 184, 0.15)',
+        backgroundColor: '#121212',
+        border: '1px solid #27272a',
         borderRadius: '12px',
         overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
       }}
     >
       {/* Search & Event Type Tabs */}
@@ -180,17 +179,17 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
           flexWrap: 'wrap',
           gap: '0.75rem',
           padding: '1rem 1.25rem',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          borderBottom: '1px solid #27272a',
+          backgroundColor: '#18181b',
         }}
       >
         {/* Type tabs */}
         <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
           {[
             { id: 'All', label: 'All Events' },
-            { id: 'PushEvent', label: '🚀 New Git Pushed' },
-            { id: 'PullRequestEvent', label: '📥 New Git Pulled' },
-            { id: 'IssuesEvent', label: '⚠️ Issues' },
+            { id: 'PushEvent', label: 'New Git Pushed' },
+            { id: 'PullRequestEvent', label: 'New Git Pulled' },
+            { id: 'IssuesEvent', label: 'Issues' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -202,11 +201,11 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
                 borderRadius: '6px',
                 border:
                   selectedType === tab.id
-                    ? '1px solid #38bdf8'
-                    : '1px solid rgba(148, 163, 184, 0.2)',
+                    ? '1px solid #dc2626'
+                    : '1px solid #27272a',
                 backgroundColor:
-                  selectedType === tab.id ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                color: selectedType === tab.id ? '#38bdf8' : '#94a3b8',
+                  selectedType === tab.id ? '#dc2626' : 'transparent',
+                color: selectedType === tab.id ? '#ffffff' : '#a1a1aa',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -220,7 +219,7 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
         <div style={{ position: 'relative', width: '220px' }}>
           <Search
             size={14}
-            style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}
+            style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }}
           />
           <input
             type="text"
@@ -232,9 +231,9 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
               padding: '0.35rem 0.65rem 0.35rem 2rem',
               fontSize: '0.78rem',
               borderRadius: '6px',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              backgroundColor: 'rgba(30, 41, 59, 0.6)',
-              color: '#f8fafc',
+              border: '1px solid #27272a',
+              backgroundColor: '#121212',
+              color: '#ffffff',
               outline: 'none',
               boxSizing: 'border-box',
             }}
@@ -243,24 +242,24 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
       </div>
 
       {filteredEvents.length === 0 ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
+        <div style={{ padding: '3rem', textAlign: 'center', color: '#a1a1aa', fontSize: '0.875rem' }}>
           No activity events found matching your filter criteria.
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderBottom: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>
+              <tr style={{ backgroundColor: '#18181b', borderBottom: '1px solid #27272a' }}>
+                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600, letterSpacing: '0.05em' }}>
                   EVENT TYPE
                 </th>
-                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>
+                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600, letterSpacing: '0.05em' }}>
                   CONTRIBUTOR
                 </th>
-                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>
+                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600, letterSpacing: '0.05em' }}>
                   ACTIVITY SUMMARY
                 </th>
-                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em' }}>
+                <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.72rem', color: '#a1a1aa', fontWeight: 600, letterSpacing: '0.05em' }}>
                   TIMESTAMP
                 </th>
               </tr>
@@ -273,7 +272,7 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
                   <tr
                     key={evt.event_id}
                     style={{
-                      borderBottom: '1px solid rgba(148, 163, 184, 0.08)',
+                      borderBottom: '1px solid #27272a',
                       transition: 'background-color 0.15s ease',
                     }}
                   >
@@ -291,7 +290,6 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
                           color: badge.color,
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                           whiteSpace: 'nowrap',
                         }}
                       >
@@ -315,8 +313,8 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
                               width: '22px',
                               height: '22px',
                               borderRadius: '50%',
-                              backgroundColor: 'rgba(56, 189, 248, 0.2)',
-                              color: '#38bdf8',
+                              backgroundColor: 'rgba(220, 38, 38, 0.15)',
+                              color: '#ef4444',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -327,12 +325,12 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
                             <User size={12} />
                           </div>
                         )}
-                        <span style={{ fontWeight: 600, color: '#f8fafc' }}>{evt.actor}</span>
+                        <span style={{ fontWeight: 600, color: '#ffffff' }}>{evt.actor}</span>
                       </div>
                     </td>
 
                     {/* Activity Summary */}
-                    <td style={{ padding: '0.85rem 1.25rem', fontSize: '0.825rem', color: '#cbd5e1' }}>
+                    <td style={{ padding: '0.85rem 1.25rem', fontSize: '0.825rem', color: '#a1a1aa' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {(() => {
                           const chip = getActionChip(evt);
@@ -356,14 +354,14 @@ export const RecentEventsTable: React.FC<RecentEventsTableProps> = ({ events, lo
                             </span>
                           );
                         })()}
-                        <span style={{ color: '#f1f5f9', fontWeight: 500 }}>
+                        <span style={{ color: '#ffffff', fontWeight: 500 }}>
                           {formatActivitySummary(evt)}
                         </span>
                       </div>
                     </td>
 
                     {/* Timestamp */}
-                    <td style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '0.85rem 1.25rem', fontSize: '0.75rem', color: '#a1a1aa', whiteSpace: 'nowrap' }}>
                       <span
                         style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                         title={new Date(evt.created_at).toLocaleString()}

@@ -20,10 +20,10 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#94a3b8',
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          color: '#a1a1aa',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          border: '1px solid #27272a',
         }}
       >
         Loading commit velocity metrics...
@@ -41,10 +41,10 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#94a3b8',
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          color: '#a1a1aa',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          border: '1px solid #27272a',
         }}
       >
         No commit velocity data available.
@@ -62,12 +62,11 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
       role="region"
       aria-label="Commit Velocity Chart"
       style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(148, 163, 184, 0.15)',
+        backgroundColor: '#121212',
+        border: '1px solid #27272a',
         borderRadius: '12px',
         padding: '1.25rem',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -83,8 +82,8 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
               width: '26px',
               height: '26px',
               borderRadius: '6px',
-              backgroundColor: 'rgba(56, 189, 248, 0.12)',
-              color: '#38bdf8',
+              backgroundColor: 'rgba(220, 38, 38, 0.12)',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -93,11 +92,11 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
             <GitCommit size={15} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#ffffff' }}>
               Daily Commit Velocity
             </h3>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-              Avg: <strong style={{ color: '#38bdf8' }}>{avgCommits}</strong> commits/day
+            <span style={{ fontSize: '0.72rem', color: '#a1a1aa' }}>
+              Avg: <strong style={{ color: '#ef4444' }}>{avgCommits}</strong> commits/day
             </span>
           </div>
         </div>
@@ -109,8 +108,9 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
               fontWeight: 600,
               padding: '0.2rem 0.5rem',
               borderRadius: '9999px',
-              backgroundColor: 'rgba(56, 189, 248, 0.12)',
-              color: '#38bdf8',
+              backgroundColor: '#18181b',
+              border: '1px solid #ef4444',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               gap: '0.25rem',
@@ -126,21 +126,21 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
         style={{
           minHeight: '22px',
           fontSize: '0.75rem',
-          color: hoveredPoint ? '#e2e8f0' : '#64748b',
+          color: hoveredPoint ? '#ffffff' : '#71717a',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
           padding: '0.15rem 0.5rem',
-          backgroundColor: hoveredPoint ? 'rgba(30, 41, 59, 0.8)' : 'transparent',
+          backgroundColor: hoveredPoint ? '#18181b' : 'transparent',
           borderRadius: '4px',
         }}
       >
         {hoveredPoint ? (
           <>
-            <span>Date: <strong style={{ color: '#38bdf8' }}>{new Date(hoveredPoint.timestamp).toLocaleDateString()}</strong></span>
-            <span>Commits: <strong style={{ color: '#f8fafc' }}>{hoveredPoint.commit_count}</strong></span>
-            <span>Authors: <strong style={{ color: '#34d399' }}>{hoveredPoint.active_authors}</strong></span>
-            <span>Net lines: <strong style={{ color: '#fbbf24' }}>+{hoveredPoint.net_lines}</strong></span>
+            <span>Date: <strong style={{ color: '#ef4444' }}>{new Date(hoveredPoint.timestamp).toLocaleDateString()}</strong></span>
+            <span>Commits: <strong style={{ color: '#ffffff' }}>{hoveredPoint.commit_count}</strong></span>
+            <span>Authors: <strong style={{ color: '#ffffff' }}>{hoveredPoint.active_authors}</strong></span>
+            <span>Net lines: <strong style={{ color: '#ffffff' }}>+{hoveredPoint.net_lines}</strong></span>
           </>
         ) : (
           <span>Hover over any bar to view daily commit breakdown</span>
@@ -184,11 +184,11 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
                   width: '100%',
                   height: `${Math.max(heightPercent, 6)}%`,
                   background: isHovered
-                    ? 'linear-gradient(180deg, #38bdf8 0%, #06b6d4 100%)'
-                    : 'linear-gradient(180deg, rgba(56, 189, 248, 0.85) 0%, rgba(2, 132, 199, 0.75) 100%)',
+                    ? '#ef4444'
+                    : 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)',
                   borderRadius: '4px 4px 0 0',
-                  boxShadow: isHovered ? '0 0 12px rgba(56, 189, 248, 0.6)' : 'none',
-                  transition: 'height 0.2s ease, background 0.15s, box-shadow 0.15s',
+                  boxShadow: 'none',
+                  transition: 'height 0.2s ease, background 0.15s',
                   cursor: 'pointer',
                 }}
               />
@@ -196,7 +196,7 @@ export const CommitVelocityChart: React.FC<CommitVelocityChartProps> = ({ timeli
                 <span
                   style={{
                     fontSize: '0.62rem',
-                    color: '#64748b',
+                    color: '#71717a',
                     marginTop: '0.35rem',
                     whiteSpace: 'nowrap',
                   }}

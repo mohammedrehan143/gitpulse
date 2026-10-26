@@ -21,21 +21,20 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
   const isUp = trend === 'up';
   const isDown = trend === 'down';
 
-  const trendColor = isUp ? '#34d399' : isDown ? '#f87171' : '#94a3b8';
+  const trendColor = isUp ? '#ffffff' : isDown ? '#ef4444' : '#a1a1aa';
   const trendBg = isUp
-    ? 'rgba(52, 211, 153, 0.12)'
+    ? 'rgba(255, 255, 255, 0.1)'
     : isDown
-    ? 'rgba(248, 113, 113, 0.12)'
-    : 'rgba(148, 163, 184, 0.1)';
+    ? 'rgba(239, 68, 68, 0.15)'
+    : 'rgba(255, 255, 255, 0.05)';
 
   return (
     <div
       role="region"
       aria-label={label}
       style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(148, 163, 184, 0.15)',
+        backgroundColor: '#121212',
+        border: '1px solid #27272a',
         borderRadius: '12px',
         padding: '1.25rem',
         display: 'flex',
@@ -43,13 +42,13 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
         justifyContent: 'space-between',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
         transition: 'border-color 0.2s, transform 0.2s',
       }}
     >
       {/* Top row: label + icon */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-        <span style={{ fontSize: '0.825rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.01em' }}>
+        <span style={{ fontSize: '0.825rem', color: '#a1a1aa', fontWeight: 600, letterSpacing: '0.01em' }}>
           {label}
         </span>
         {icon && (
@@ -58,8 +57,8 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              backgroundColor: 'rgba(56, 189, 248, 0.1)',
-              color: '#38bdf8',
+              backgroundColor: 'rgba(220, 38, 38, 0.12)',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -75,7 +74,7 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
         style={{
           fontSize: '1.9rem',
           fontWeight: 800,
-          color: '#f8fafc',
+          color: '#ffffff',
           letterSpacing: '-0.03em',
           margin: '0.2rem 0',
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
@@ -96,6 +95,7 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
               borderRadius: '9999px',
               backgroundColor: trendBg,
               color: trendColor,
+              border: `1px solid ${isUp ? '#3f3f46' : isDown ? '#7f1d1d' : '#27272a'}`,
               fontSize: '0.72rem',
               fontWeight: 600,
             }}
@@ -105,7 +105,7 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
           </div>
         )}
         {badge && (
-          <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+          <span style={{ fontSize: '0.7rem', color: '#71717a' }}>
             {badge}
           </span>
         )}

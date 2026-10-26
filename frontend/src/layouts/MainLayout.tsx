@@ -23,14 +23,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#090d16',
-        color: '#f8fafc',
+        backgroundColor: '#050505',
+        color: '#ffffff',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         position: 'relative',
         overflowX: 'hidden',
       }}
     >
-      {/* Ambient background glows */}
+      {/* Ambient background subtle red glow */}
       <div
         style={{
           position: 'fixed',
@@ -39,7 +39,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           width: '500px',
           height: '500px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(56, 189, 248, 0.05) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(220, 38, 38, 0.04) 0%, transparent 70%)',
           pointerEvents: 'none',
           zIndex: 0,
         }}
@@ -52,7 +52,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           width: '600px',
           height: '600px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.04) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(239, 68, 68, 0.03) 0%, transparent 70%)',
           pointerEvents: 'none',
           zIndex: 0,
         }}
@@ -84,10 +84,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <footer
         style={{
           padding: '1.75rem 2rem',
-          borderTop: '1px solid rgba(51, 65, 85, 0.5)',
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          borderTop: '1px solid #1f1f1f',
+          backgroundColor: '#0a0a0a',
           fontSize: '0.8rem',
-          color: '#64748b',
+          color: '#71717a',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -103,24 +103,23 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: '#10b981',
-              boxShadow: '0 0 6px #10b981',
+              backgroundColor: '#ef4444',
             }}
           />
-          <span>
+          <span style={{ color: '#d4d4d8' }}>
             GitPulse Engineering Intelligence Platform • Multi-Agent System (L0 Master Orchestrator)
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Activity size={13} style={{ color: '#38bdf8' }} /> Render FastAPI Backend
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#a1a1aa' }}>
+            <Activity size={13} style={{ color: '#ef4444' }} /> Render FastAPI Backend
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <ShieldCheck size={13} style={{ color: '#34d399' }} /> Vercel Edge Frontend
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#a1a1aa' }}>
+            <ShieldCheck size={13} style={{ color: '#ffffff' }} /> Vercel Edge Frontend
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Terminal size={13} style={{ color: '#c084fc' }} /> Groq AI Insights
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#a1a1aa' }}>
+            <Terminal size={13} style={{ color: '#f87171' }} /> Groq AI Insights
           </span>
         </div>
       </footer>

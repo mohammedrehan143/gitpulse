@@ -78,13 +78,12 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
     <section
       aria-label="Discovered Repositories Section"
       style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(148, 163, 184, 0.15)',
+        backgroundColor: '#121212',
+        border: '1px solid #27272a',
         borderRadius: '12px',
         padding: '1.5rem',
         marginBottom: '2rem',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
       }}
     >
       {/* Header bar */}
@@ -104,8 +103,8 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              backgroundColor: 'rgba(56, 189, 248, 0.12)',
-              color: '#38bdf8',
+              backgroundColor: 'rgba(220, 38, 38, 0.12)',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -115,7 +114,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: '#f8fafc' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>
                 Monitored Repositories
               </h2>
               <span
@@ -124,15 +123,15 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                   fontWeight: 700,
                   padding: '0.15rem 0.55rem',
                   borderRadius: '9999px',
-                  backgroundColor: 'rgba(3, 105, 161, 0.3)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  color: '#7dd3fc',
+                  backgroundColor: '#18181b',
+                  border: '1px solid #ef4444',
+                  color: '#ef4444',
                 }}
               >
                 {repositories.length} Discovered
               </span>
             </div>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.8rem', color: '#a1a1aa' }}>
               Select a repository to inspect developer velocity, code churn, and PR throughput.
             </p>
           </div>
@@ -151,9 +150,9 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                 padding: '0.4rem 0.75rem',
                 fontSize: '0.8rem',
                 borderRadius: '6px',
-                border: '1px solid rgba(148, 163, 184, 0.25)',
-                backgroundColor: 'rgba(30, 41, 59, 0.6)',
-                color: '#f8fafc',
+                border: '1px solid #27272a',
+                backgroundColor: '#18181b',
+                color: '#ffffff',
                 outline: 'none',
                 width: '180px',
               }}
@@ -170,7 +169,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                 fontSize: '0.8rem',
                 fontWeight: 600,
                 borderRadius: '6px',
-                backgroundColor: customRepoInput.includes('/') ? '#0284c7' : '#334155',
+                backgroundColor: customRepoInput.includes('/') ? '#dc2626' : '#27272a',
                 color: '#ffffff',
                 border: 'none',
                 cursor: customRepoInput.includes('/') ? 'pointer' : 'not-allowed',
@@ -193,7 +192,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
               fontSize: '0.825rem',
               fontWeight: 600,
               borderRadius: '6px',
-              backgroundColor: isRefreshing ? '#475569' : '#0284c7',
+              backgroundColor: isRefreshing ? '#27272a' : '#dc2626',
               color: '#ffffff',
               border: 'none',
               cursor: isRefreshing || isLoading ? 'not-allowed' : 'pointer',
@@ -233,13 +232,13 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
           gap: '0.75rem',
           marginBottom: '1rem',
           paddingBottom: '0.75rem',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+          borderBottom: '1px solid #27272a',
         }}
       >
         <div style={{ position: 'relative', flex: '1', minWidth: '220px', maxWidth: '380px' }}>
           <Search
             size={15}
-            style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}
+            style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#a1a1aa' }}
           />
           <input
             type="text"
@@ -252,9 +251,9 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
               padding: '0.45rem 0.75rem 0.45rem 2.2rem',
               fontSize: '0.825rem',
               borderRadius: '8px',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              backgroundColor: 'rgba(30, 41, 59, 0.5)',
-              color: '#f8fafc',
+              border: '1px solid #27272a',
+              backgroundColor: '#18181b',
+              color: '#ffffff',
               outline: 'none',
               boxSizing: 'border-box',
             }}
@@ -271,9 +270,9 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 borderRadius: '6px',
-                border: filterType === type ? '1px solid #38bdf8' : '1px solid rgba(148, 163, 184, 0.2)',
-                backgroundColor: filterType === type ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                color: filterType === type ? '#38bdf8' : '#94a3b8',
+                border: filterType === type ? '1px solid #dc2626' : '1px solid #27272a',
+                backgroundColor: filterType === type ? '#dc2626' : 'transparent',
+                color: filterType === type ? '#ffffff' : '#a1a1aa',
                 cursor: 'pointer',
                 textTransform: 'capitalize',
               }}
@@ -286,11 +285,11 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
 
       {/* Grid of Repository Cards */}
       {isLoading ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#a1a1aa', fontSize: '0.9rem' }}>
           Loading repository inventory from Supabase/SQLite...
         </div>
       ) : displayedRepositories.length === 0 ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#a1a1aa', fontSize: '0.9rem' }}>
           No repositories matching &quot;{searchQuery}&quot;.
         </div>
       ) : (
@@ -310,11 +309,11 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                 onClick={() => onSelectRepo(r.full_name)}
                 style={{
                   backgroundColor: isSelected
-                    ? 'rgba(3, 105, 161, 0.2)'
-                    : 'rgba(30, 41, 59, 0.5)',
+                    ? 'rgba(220, 38, 38, 0.08)'
+                    : '#18181b',
                   border: isSelected
-                    ? '1.5px solid #38bdf8'
-                    : '1px solid rgba(148, 163, 184, 0.15)',
+                    ? '1.5px solid #dc2626'
+                    : '1px solid #27272a',
                   borderRadius: '10px',
                   padding: '1rem',
                   cursor: 'pointer',
@@ -322,7 +321,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  boxShadow: isSelected ? '0 0 15px rgba(56, 189, 248, 0.2)' : 'none',
+                  boxShadow: 'none',
                   transition: 'all 0.15s ease',
                 }}
               >
@@ -333,7 +332,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                         margin: 0,
                         fontSize: '0.925rem',
                         fontWeight: 700,
-                        color: isSelected ? '#38bdf8' : '#f8fafc',
+                        color: isSelected ? '#ef4444' : '#ffffff',
                         wordBreak: 'break-word',
                       }}
                     >
@@ -345,8 +344,8 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                           width: '18px',
                           height: '18px',
                           borderRadius: '50%',
-                          backgroundColor: '#38bdf8',
-                          color: '#0f172a',
+                          backgroundColor: '#dc2626',
+                          color: '#ffffff',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -363,7 +362,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                       style={{
                         margin: '0.4rem 0 0 0',
                         fontSize: '0.78rem',
-                        color: '#94a3b8',
+                        color: '#a1a1aa',
                         overflow: 'hidden',
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
@@ -382,14 +381,14 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                     justifyContent: 'space-between',
                     marginTop: '0.75rem',
                     paddingTop: '0.5rem',
-                    borderTop: '1px solid rgba(148, 163, 184, 0.1)',
+                    borderTop: '1px solid #27272a',
                     fontSize: '0.72rem',
-                    color: '#64748b',
+                    color: '#a1a1aa',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <Star size={11} style={{ color: '#eab308' }} /> {r.stars_count || 0}
+                      <Star size={11} style={{ color: '#ef4444' }} /> {r.stars_count || 0}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                       <GitFork size={11} /> {r.forks_count || 0}
@@ -398,8 +397,9 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                       style={{
                         padding: '0.1rem 0.4rem',
                         borderRadius: '4px',
-                        backgroundColor: r.visibility === 'public' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(234, 179, 8, 0.1)',
-                        color: r.visibility === 'public' ? '#38bdf8' : '#eab308',
+                        backgroundColor: '#121212',
+                        border: '1px solid #27272a',
+                        color: '#ffffff',
                         fontSize: '0.65rem',
                         fontWeight: 600,
                       }}
@@ -416,7 +416,7 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}
+                        style={{ color: '#a1a1aa', display: 'flex', alignItems: 'center' }}
                         title="View on GitHub"
                       >
                         <ExternalLink size={11} />
@@ -440,9 +440,9 @@ export const RepositoryList: React.FC<RepositoryListProps> = ({
               fontSize: '0.78rem',
               fontWeight: 600,
               borderRadius: '6px',
-              backgroundColor: 'rgba(30, 41, 59, 0.8)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
+              backgroundColor: '#18181b',
+              color: '#ef4444',
+              border: '1px solid #dc2626',
               cursor: 'pointer',
             }}
           >

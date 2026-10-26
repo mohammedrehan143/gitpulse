@@ -272,7 +272,7 @@ export const Dashboard: React.FC = () => {
           display: 'flex',
           gap: '8px',
           marginBottom: '1.5rem',
-          borderBottom: '1px solid #1e293b',
+          borderBottom: '1px solid #27272a',
           paddingBottom: '8px',
         }}
       >
@@ -282,14 +282,14 @@ export const Dashboard: React.FC = () => {
             padding: '8px 16px',
             fontSize: '13px',
             fontWeight: 700,
-            borderRadius: '8px',
-            border: 'none',
+            borderRadius: '6px',
+            border: activeTab === 'overview' ? '1px solid #dc2626' : '1px solid #27272a',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             cursor: 'pointer',
-            backgroundColor: activeTab === 'overview' ? '#0284c7' : 'transparent',
-            color: activeTab === 'overview' ? '#ffffff' : '#94a3b8',
+            backgroundColor: activeTab === 'overview' ? '#dc2626' : '#141414',
+            color: '#ffffff',
             transition: 'all 0.15s ease',
           }}
         >
@@ -303,14 +303,14 @@ export const Dashboard: React.FC = () => {
             padding: '8px 16px',
             fontSize: '13px',
             fontWeight: 700,
-            borderRadius: '8px',
-            border: 'none',
+            borderRadius: '6px',
+            border: activeTab === 'intelligence' ? '1px solid #dc2626' : '1px solid #27272a',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             cursor: 'pointer',
-            backgroundColor: activeTab === 'intelligence' ? '#8b5cf6' : 'transparent',
-            color: activeTab === 'intelligence' ? '#ffffff' : '#94a3b8',
+            backgroundColor: activeTab === 'intelligence' ? '#dc2626' : '#141414',
+            color: '#ffffff',
             transition: 'all 0.15s ease',
           }}
         >
@@ -320,11 +320,13 @@ export const Dashboard: React.FC = () => {
             style={{
               padding: '2px 6px',
               fontSize: '10px',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: '9999px',
+              backgroundColor: activeTab === 'intelligence' ? '#ffffff' : '#27272a',
+              color: activeTab === 'intelligence' ? '#000000' : '#ffffff',
+              borderRadius: '4px',
+              fontWeight: 800,
             }}
           >
-            4 ML Modules
+            4 ML MODULES
           </span>
         </button>
       </div>
@@ -337,26 +339,26 @@ export const Dashboard: React.FC = () => {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '12px 18px',
-              backgroundColor: '#0f172a',
-              borderRadius: '10px',
-              border: '1px solid #1e293b',
+              padding: '14px 18px',
+              backgroundColor: '#121212',
+              borderRadius: '8px',
+              border: '1px solid #27272a',
               flexWrap: 'wrap',
               gap: '12px',
             }}
           >
             <div>
-              <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '14px' }}>
+              <div style={{ fontWeight: 700, color: '#ffffff', fontSize: '14px' }}>
                 Engineering Machine Learning Models for {selectedRepo}
               </div>
-              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+              <div style={{ fontSize: '12px', color: '#a1a1aa' }}>
                 Forecasting, Anomaly Detection, Issue Turnaround & PR Review Models
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {retrainMsg && (
-                <span style={{ fontSize: '12px', color: '#34d399', fontWeight: 600 }}>
+                <span style={{ fontSize: '12px', color: '#ffffff', fontWeight: 600 }}>
                   {retrainMsg}
                 </span>
               )}
@@ -364,12 +366,12 @@ export const Dashboard: React.FC = () => {
                 onClick={handleRetrainAll}
                 disabled={isRetraining}
                 style={{
-                  padding: '6px 14px',
-                  backgroundColor: '#8b5cf6',
+                  padding: '7px 16px',
+                  backgroundColor: '#dc2626',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '6px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '12px',
                   cursor: isRetraining ? 'not-allowed' : 'pointer',
                   opacity: isRetraining ? 0.7 : 1,
@@ -455,7 +457,7 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Timeframe pills */}
-            <div style={{ display: 'flex', gap: '0.3rem', backgroundColor: 'rgba(15, 23, 42, 0.6)', padding: '0.2rem', borderRadius: '8px', border: '1px solid rgba(148, 163, 184, 0.15)' }}>
+            <div style={{ display: 'flex', gap: '0.3rem', backgroundColor: '#121212', padding: '0.25rem', borderRadius: '6px', border: '1px solid #27272a' }}>
               {(['7d', '14d', '30d', '90d'] as const).map((t) => (
                 <button
                   key={t}
@@ -464,10 +466,10 @@ export const Dashboard: React.FC = () => {
                     padding: '0.3rem 0.65rem',
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     border: 'none',
-                    backgroundColor: timeframe === t ? '#0284c7' : 'transparent',
-                    color: timeframe === t ? '#ffffff' : '#94a3b8',
+                    backgroundColor: timeframe === t ? '#dc2626' : 'transparent',
+                    color: timeframe === t ? '#ffffff' : '#a1a1aa',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
@@ -562,9 +564,9 @@ export const Dashboard: React.FC = () => {
                 </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: wsConnected ? '#34d399' : '#94a3b8' }}>
-                <Radio size={12} />
-                <span>{wsConnected ? 'Streaming Live' : 'Feed Updated'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: wsConnected ? '#ffffff' : '#a1a1aa' }}>
+                <Radio size={12} color="#ef4444" />
+                <span>{wsConnected ? 'Live Feed Connected' : 'Feed Updated'}</span>
               </div>
             </div>
             <RecentEventsTable events={events} loading={eventsLoading} />

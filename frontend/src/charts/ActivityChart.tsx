@@ -19,10 +19,10 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({ timeline }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#94a3b8',
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          color: '#a1a1aa',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          border: '1px solid #27272a',
         }}
       >
         No PR activity recorded.
@@ -40,12 +40,11 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({ timeline }) => {
       role="region"
       aria-label="PR Throughput Chart"
       style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(148, 163, 184, 0.15)',
+        backgroundColor: '#121212',
+        border: '1px solid #27272a',
         borderRadius: '12px',
         padding: '1.25rem',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -61,8 +60,8 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({ timeline }) => {
               width: '26px',
               height: '26px',
               borderRadius: '6px',
-              backgroundColor: 'rgba(52, 211, 153, 0.12)',
-              color: '#34d399',
+              backgroundColor: 'rgba(220, 38, 38, 0.12)',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -71,23 +70,23 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({ timeline }) => {
             <GitPullRequest size={15} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#f8fafc' }}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#ffffff' }}>
               Pull Request Throughput
             </h3>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-              PR Clearance: <strong style={{ color: '#34d399' }}>{clearanceRate}%</strong>
+            <span style={{ fontSize: '0.72rem', color: '#a1a1aa' }}>
+              PR Clearance: <strong style={{ color: '#ffffff' }}>{clearanceRate}%</strong>
             </span>
           </div>
         </div>
 
         {/* Legend */}
         <div style={{ display: 'flex', gap: '0.85rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#94a3b8' }}>
-            <div style={{ width: '8px', height: '8px', backgroundColor: '#38bdf8', borderRadius: '2px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#a1a1aa' }}>
+            <div style={{ width: '8px', height: '8px', backgroundColor: '#ffffff', borderRadius: '2px' }} />
             <span>Opened ({totalOpened})</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#94a3b8' }}>
-            <div style={{ width: '8px', height: '8px', backgroundColor: '#34d399', borderRadius: '2px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#a1a1aa' }}>
+            <div style={{ width: '8px', height: '8px', backgroundColor: '#dc2626', borderRadius: '2px' }} />
             <span>Merged ({totalMerged})</span>
           </div>
         </div>
@@ -98,20 +97,20 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({ timeline }) => {
         style={{
           minHeight: '22px',
           fontSize: '0.75rem',
-          color: hoveredPoint ? '#e2e8f0' : '#64748b',
+          color: hoveredPoint ? '#ffffff' : '#71717a',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
           padding: '0.15rem 0.5rem',
-          backgroundColor: hoveredPoint ? 'rgba(30, 41, 59, 0.8)' : 'transparent',
+          backgroundColor: hoveredPoint ? '#18181b' : 'transparent',
           borderRadius: '4px',
         }}
       >
         {hoveredPoint ? (
           <>
-            <span>Date: <strong style={{ color: '#f8fafc' }}>{new Date(hoveredPoint.timestamp).toLocaleDateString()}</strong></span>
-            <span>PRs Opened: <strong style={{ color: '#38bdf8' }}>{hoveredPoint.pr_opened_count}</strong></span>
-            <span>PRs Merged: <strong style={{ color: '#34d399' }}>{hoveredPoint.pr_merged_count}</strong></span>
+            <span>Date: <strong style={{ color: '#ffffff' }}>{new Date(hoveredPoint.timestamp).toLocaleDateString()}</strong></span>
+            <span>PRs Opened: <strong style={{ color: '#ffffff' }}>{hoveredPoint.pr_opened_count}</strong></span>
+            <span>PRs Merged: <strong style={{ color: '#ef4444' }}>{hoveredPoint.pr_merged_count}</strong></span>
           </>
         ) : (
           <span>Hover to inspect PR throughput metrics</span>
@@ -154,10 +153,10 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({ timeline }) => {
                   flex: 1,
                   height: `${Math.max(openedH, 4)}%`,
                   background: isHovered
-                    ? '#38bdf8'
-                    : 'linear-gradient(180deg, rgba(56, 189, 248, 0.85) 0%, rgba(2, 132, 199, 0.6) 100%)',
+                    ? '#ffffff'
+                    : '#71717a',
                   borderRadius: '2px 2px 0 0',
-                  boxShadow: isHovered ? '0 0 8px rgba(56, 189, 248, 0.5)' : 'none',
+                  boxShadow: 'none',
                   transition: 'height 0.2s',
                 }}
                 title={`Opened: ${pt.pr_opened_count}`}
@@ -169,10 +168,10 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({ timeline }) => {
                   flex: 1,
                   height: `${Math.max(mergedH, 4)}%`,
                   background: isHovered
-                    ? '#34d399'
-                    : 'linear-gradient(180deg, rgba(52, 211, 153, 0.85) 0%, rgba(5, 150, 105, 0.6) 100%)',
+                    ? '#ef4444'
+                    : '#dc2626',
                   borderRadius: '2px 2px 0 0',
-                  boxShadow: isHovered ? '0 0 8px rgba(52, 211, 153, 0.5)' : 'none',
+                  boxShadow: 'none',
                   transition: 'height 0.2s',
                 }}
                 title={`Merged: ${pt.pr_merged_count}`}

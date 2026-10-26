@@ -25,10 +25,10 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
         className="card-loading"
         style={{
           padding: '24px',
-          backgroundColor: '#0f172a',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid #1e293b',
-          color: '#94a3b8',
+          border: '1px solid #27272a',
+          color: '#a1a1aa',
           minHeight: '320px',
           display: 'flex',
           alignItems: 'center',
@@ -45,17 +45,17 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
       <div
         style={{
           padding: '24px',
-          backgroundColor: '#0f172a',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid #1e293b',
-          color: '#f87171',
+          border: '1px solid #27272a',
+          color: '#ef4444',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <AlertCircle size={18} />
           <span style={{ fontWeight: 600 }}>Forecasting Unavailable</span>
         </div>
-        <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
+        <p style={{ margin: 0, color: '#a1a1aa', fontSize: '14px' }}>
           {error || 'Unable to generate future activity predictions at this time.'}
         </p>
       </div>
@@ -67,17 +67,17 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
       <div
         style={{
           padding: '24px',
-          backgroundColor: '#0f172a',
+          backgroundColor: '#121212',
           borderRadius: '12px',
-          border: '1px solid #1e293b',
-          color: '#f59e0b',
+          border: '1px solid #27272a',
+          color: '#ef4444',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <Calendar size={18} />
           <span style={{ fontWeight: 600 }}>Insufficient Historical Continuity</span>
         </div>
-        <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
+        <p style={{ margin: 0, color: '#a1a1aa', fontSize: '14px' }}>
           {data.message || 'At least 14 days of activity history are required to train autoregressive forecasting models.'}
         </p>
       </div>
@@ -92,10 +92,10 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
     <div
       style={{
         padding: '24px',
-        backgroundColor: '#0f172a',
+        backgroundColor: '#121212',
         borderRadius: '12px',
-        border: '1px solid #1e293b',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #27272a',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
       }}
     >
       {/* Header */}
@@ -111,16 +111,17 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <TrendingUp size={20} color="#38bdf8" />
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#f8fafc' }}>
+            <TrendingUp size={20} color="#ef4444" />
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#ffffff' }}>
               Developer Activity Forecasting
             </h3>
             <span
               style={{
                 fontSize: '11px',
                 padding: '2px 8px',
-                backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
+                backgroundColor: '#18181b',
+                color: '#ef4444',
+                border: '1px solid #ef4444',
                 borderRadius: '9999px',
                 fontWeight: 600,
               }}
@@ -128,13 +129,13 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
               ML Autoregressive
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: '#a1a1aa' }}>
             Projected commit & activity trajectory with 95% uncertainty intervals
           </p>
         </div>
 
         {/* Horizon selector buttons */}
-        <div style={{ display: 'flex', gap: '6px', backgroundColor: '#1e293b', padding: '4px', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', gap: '6px', backgroundColor: '#18181b', padding: '4px', borderRadius: '8px', border: '1px solid #27272a' }}>
           <button
             onClick={() => onHorizonChange(7)}
             style={{
@@ -144,8 +145,8 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
-              backgroundColor: horizon === 7 ? '#38bdf8' : 'transparent',
-              color: horizon === 7 ? '#0f172a' : '#94a3b8',
+              backgroundColor: horizon === 7 ? '#dc2626' : 'transparent',
+              color: horizon === 7 ? '#ffffff' : '#a1a1aa',
               transition: 'all 0.15s ease',
             }}
           >
@@ -160,8 +161,8 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
               borderRadius: '6px',
               border: 'none',
               cursor: 'pointer',
-              backgroundColor: horizon === 14 ? '#38bdf8' : 'transparent',
-              color: horizon === 14 ? '#0f172a' : '#94a3b8',
+              backgroundColor: horizon === 14 ? '#dc2626' : 'transparent',
+              color: horizon === 14 ? '#ffffff' : '#a1a1aa',
               transition: 'all 0.15s ease',
             }}
           >
@@ -178,30 +179,32 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
             gap: '12px',
             marginBottom: '20px',
             padding: '12px 16px',
-            backgroundColor: '#1e293b',
+            backgroundColor: '#18181b',
+            border: '1px solid #27272a',
             borderRadius: '8px',
             fontSize: '13px',
             flexWrap: 'wrap',
             alignItems: 'center',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444' }}>
             <Sparkles size={16} />
             <span style={{ fontWeight: 600 }}>Validation Backtest:</span>
           </div>
-          <div style={{ color: '#94a3b8' }}>
-            Seasonal Baseline MAE: <strong style={{ color: '#e2e8f0' }}>{evalMetrics.seasonal_naive_mae}</strong>
+          <div style={{ color: '#a1a1aa' }}>
+            Seasonal Baseline MAE: <strong style={{ color: '#ffffff' }}>{evalMetrics.seasonal_naive_mae}</strong>
           </div>
-          <div style={{ color: '#94a3b8' }}>
-            ML Model MAE: <strong style={{ color: '#34d399' }}>{evalMetrics.ml_model_mae}</strong>
+          <div style={{ color: '#a1a1aa' }}>
+            ML Model MAE: <strong style={{ color: '#ffffff' }}>{evalMetrics.ml_model_mae}</strong>
           </div>
           {evalMetrics.mae_improvement_pct > 0 && (
             <span
               style={{
                 marginLeft: 'auto',
                 padding: '2px 8px',
-                backgroundColor: 'rgba(52, 211, 153, 0.15)',
-                color: '#34d399',
+                backgroundColor: '#121212',
+                border: '1px solid #ef4444',
+                color: '#ef4444',
                 borderRadius: '6px',
                 fontWeight: 600,
                 fontSize: '12px',
@@ -223,7 +226,7 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
             alignItems: 'flex-end',
             height: '180px',
             paddingBottom: '8px',
-            borderBottom: '1px solid #334155',
+            borderBottom: '1px solid #27272a',
           }}
         >
           {forecast.map((pt) => {
@@ -254,7 +257,7 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
                     bottom: `${lowerPct}%`,
                     height: `${Math.max(upperPct - lowerPct, 4)}%`,
                     width: '6px',
-                    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.25)',
                     borderRadius: '4px',
                   }}
                 />
@@ -265,7 +268,7 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
                     width: '100%',
                     maxWidth: '32px',
                     height: `${Math.max(heightPct, 6)}%`,
-                    backgroundColor: isHovered ? '#38bdf8' : pt.is_weekend ? '#64748b' : '#0284c7',
+                    backgroundColor: isHovered ? '#ef4444' : pt.is_weekend ? '#3f3f46' : '#dc2626',
                     borderRadius: '4px 4px 0 0',
                     transition: 'all 0.15s ease',
                     zIndex: 2,
@@ -278,8 +281,8 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
                     style={{
                       position: 'absolute',
                       bottom: '105%',
-                      backgroundColor: '#020617',
-                      border: '1px solid #38bdf8',
+                      backgroundColor: '#18181b',
+                      border: '1px solid #ef4444',
                       padding: '8px 10px',
                       borderRadius: '6px',
                       fontSize: '11px',
@@ -288,9 +291,9 @@ export const ForecastingCard: React.FC<ForecastingCardProps> = ({
                       boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
                     }}
                   >
-                    <div style={{ color: '#f8fafc', fontWeight: 600 }}>{pt.date}</div>
-                    <div style={{ color: '#38bdf8' }}>Forecast: {pt.forecast} commits</div>
-                    <div style={{ color: '#94a3b8' }}>Range: {pt.lower_bound} – {pt.upper_bound}</div>
+                    <div style={{ color: '#ffffff', fontWeight: 600 }}>{pt.date}</div>
+                    <div style={{ color: '#ef4444' }}>Forecast: {pt.forecast} commits</div>
+                    <div style={{ color: '#a1a1aa' }}>Range: {pt.lower_bound} – {pt.upper_bound}</div>
                   </div>
                 )}
               </div>
