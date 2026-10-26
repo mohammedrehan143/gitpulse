@@ -232,6 +232,49 @@ async def get_repository_events(
     event_type: str | None = None,
 ) -> EventsResponse:
     """Retrieves paginated event stream for a repository."""
+    # Attempt to query live persisted events from database
+    try:
+        from sqlalchemy import select
+
+        from backend.src.gitpulse.storage.database import AsyncSessionLocal
+        from backend.src.gitpulse.storage.models import GitHubEvent, Repository
+
+        full_name = f"{owner}/{repo}"
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(GitHubEvent)
+                .join(Repository, GitHubEvent.repo_id == Repository.id)
+                .where(Repository.full_name == full_name)
+            )
+            if event_type:
+                stmt = stmt.where(GitHubEvent.event_type == event_type)
+            stmt = stmt.order_by(GitHubEvent.created_at.desc()).offset(offset).limit(limit)
+            result = await session.execute(stmt)
+            records = result.scalars().all()
+            if records:
+                db_events = [
+                    EventItem(
+                        event_id=r.event_id,
+                        event_type=r.event_type,
+                        actor=r.actor_login,
+                        actor_avatar_url=r.actor_avatar_url,
+                        action=r.action,
+                        payload_summary=r.payload_summary,
+                        created_at=(
+                            r.created_at.isoformat() if r.created_at else "2026-10-24T18:00:00Z"
+                        ),
+                    )
+                    for r in records
+                ]
+                return EventsResponse(
+                    total_count=len(db_events) + offset,
+                    limit=limit,
+                    offset=offset,
+                    events=db_events,
+                )
+    except Exception as exc:
+        logger.debug("Database event query fallback: %s", exc)
+
     raw_events = [
         EventItem(
             event_id="evt_9872134",

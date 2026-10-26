@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     def normalize_database_url(cls, v: Any) -> str:
         if isinstance(v, str):
             v = v.strip()
+            # Fall back to local SQLite if default placeholder template is detected
+            if any(p in v for p in ["[your-", "[region]", "[your-password]", "[your-project-ref]"]):
+                return "sqlite+aiosqlite:///./gitpulse_dev.db"
             if v.startswith("postgres://"):
                 return v.replace("postgres://", "postgresql+asyncpg://", 1)
             if v.startswith("postgresql://") and not v.startswith("postgresql+"):

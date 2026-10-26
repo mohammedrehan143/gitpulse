@@ -11,8 +11,10 @@ class Base(DeclarativeBase):
 
 
 def get_normalized_database_url(url: str) -> str:
-    """Ensure PostgreSQL URLs use the asyncpg async dialect."""
+    """Ensure PostgreSQL URLs use the asyncpg async dialect and placeholders fall back."""
     if not url:
+        return "sqlite+aiosqlite:///./gitpulse_dev.db"
+    if any(p in url for p in ["[your-", "[region]", "[your-password]", "[your-project-ref]"]):
         return "sqlite+aiosqlite:///./gitpulse_dev.db"
     if url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql+asyncpg://", 1)

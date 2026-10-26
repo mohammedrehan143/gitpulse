@@ -1,4 +1,10 @@
-import { VelocityResponse, EventsResponse, RepositoriesResponse, RefreshRepositoriesResponse } from '../types';
+import {
+  VelocityResponse,
+  EventsResponse,
+  RepositoriesResponse,
+  RefreshRepositoriesResponse,
+  AIInsightsResponse,
+} from '../types';
 
 export function getApiBaseUrl(): string {
   const envUrl = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/$/, '');
@@ -78,6 +84,18 @@ export async function fetchRepositoryEvents(
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch events: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchAIInsights(
+  owner: string,
+  repo: string
+): Promise<AIInsightsResponse> {
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/ai-insights`;
+  const res = await fetch(url, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`Failed to generate AI insights: ${res.statusText}`);
   }
   return res.json();
 }

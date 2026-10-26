@@ -5,6 +5,7 @@ import {
   createRepoWebSocket,
   fetchDiscoveredRepositories,
   refreshDiscoveredRepositories,
+  fetchAIInsights,
   getApiBaseUrl,
   getWsBaseUrl,
 } from '../src/services/api';
@@ -97,6 +98,26 @@ describe('GitPulse Frontend Application & API Services', () => {
     );
     expect(res.status).toBe('SYNCHRONIZED');
     expect(res.synced_count).toBe(3);
+  });
+
+  it('triggers AI insights generation via POST /repos/{owner}/{repo}/ai-insights', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        repository: 'apache/spark',
+        model: 'openai/gpt-oss-120b',
+        insights: 'Velocity optimal. PR cycle time 18.5h.',
+      }),
+    });
+    global.fetch = mockFetch;
+
+    const res = await fetchAIInsights('apache', 'spark');
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/repos/apache/spark/ai-insights'),
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(res.model).toBe('openai/gpt-oss-120b');
+    expect(res.insights).toContain('Velocity optimal');
   });
 
   it('resolves default API base and WebSocket URLs correctly', () => {

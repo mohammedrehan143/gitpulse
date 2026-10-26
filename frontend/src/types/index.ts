@@ -79,3 +79,9 @@ export interface RefreshRepositoriesResponse {
   repositories: DiscoveredRepository[];
 }
 
+export interface AIInsightsResponse {
+  repository: string;
+  model: string;
+  insights: string;
+}
+

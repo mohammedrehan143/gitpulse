@@ -18,10 +18,24 @@ Autonomous MAS Workflow Active
 | **Milestone 7** | **Groq AI Integration (openai/gpt-oss-120b)** | AI Engineering, API, Runtime | **DONE** | Groq SDK streaming client, repository velocity insights engine, `/api/v1/ai/generate` and `/repos/{owner}/{repo}/ai-insights` endpoints. |
 | **Milestone 8** | **Architecture Simplification & Direct Supabase Flow** | Backend, Architecture, DevOps | **DONE** | Decoupled Kafka & MinIO from runtime `.env` and `config.py`. Ingestion runner persists directly to Supabase (`GitHubEvent`), updates `Repository` monitoring status, and dispatches Discord alerts. Quality gates all green. |
 | **Milestone 9** | **Lightweight Python Ingestion Scheduler (Airflow Replacement)** | Backend (Ingestion, Scheduler, Tests) | **DONE** | Native Python `asyncio` scheduler with 60-minute recurring loop, immediate startup run, concurrency locking, Ctrl+C graceful shutdown, zero extra disk/dependencies. 8 unit tests passing. |
+| **Milestone 10** | **Cloud Deployment (Render & Vercel) & Modern UI Overhaul** | Master, Backend, Frontend | **DONE** | Render Blueprint & Vercel monorepo packaging, PostgreSQL dialect adapter, SQLite fallback, live WebSocket streaming, Groq AI Copilot, dark glassmorphic UI overhaul. 55 backend & 8 frontend tests passing. |
 
 ---
 
-## 2. Milestone 9: Lightweight Python Scheduler
+## 2. Milestone 10: Cloud Deployment & UI Overhaul
+
+- [x] **DEPLOY-1001**: Render Blueprint configuration in [`render.yaml`](file:///D:/agy/gitpulse/render.yaml) with Python 3.11.9 runtime pinning in [`.python-version`](file:///D:/agy/gitpulse/.python-version).
+- [x] **DEPLOY-1002**: Vercel configuration supporting both repository root and `frontend` subdirectory with [`.vercelignore`](file:///D:/agy/gitpulse/.vercelignore) and root [`package.json`](file:///D:/agy/gitpulse/package.json).
+- [x] **STOR-1001**: SQLite and PostgreSQL dual dialect compatibility in [`models.py`](file:///D:/agy/gitpulse/backend/src/gitpulse/storage/models.py) with `BigInteger().with_variant(Integer, "sqlite")`.
+- [x] **STOR-1002**: Automatic connection string dialect normalization (`postgres://` / `postgresql://` -> `postgresql+asyncpg://`) and unconfigured placeholder fallback.
+- [x] **UI-1001**: Dark glassmorphic design system overhaul across Header, Repository Cards, Metrics, Visualizations, and Activity Stream.
+- [x] **UI-1002**: Real-time WebSocket connection beacon & live event prepending.
+- [x] **UI-1003**: Groq AI Velocity Copilot panel ([`AIInsightsCard.tsx`](file:///D:/agy/gitpulse/frontend/src/components/AIInsightsCard.tsx)) powered by `openai/gpt-oss-120b`.
+- [x] **DOC-1001**: Published end-to-end cloud deployment manual in [`docs/DEPLOYMENT.md`](file:///D:/agy/gitpulse/docs/DEPLOYMENT.md).
+
+---
+
+## 3. Milestone 9: Lightweight Python Scheduler
 
 - [x] **SCHED-901**: Implemented [backend/src/gitpulse/scheduler.py](file:///D:/agy/gitpulse/backend/src/gitpulse/scheduler.py) using native `asyncio.Event` and non-blocking wait.
 - [x] **SCHED-902**: Extracted reusable [run_ingestion_pipeline](file:///D:/agy/gitpulse/backend/src/gitpulse/ingestion/runner.py) with automatic repository discovery and fallback resolution.

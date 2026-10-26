@@ -14,7 +14,9 @@ from backend.src.gitpulse.storage.database import Base
 class Repository(Base):
     __tablename__ = "repositories"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     github_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     owner: Mapped[str] = mapped_column(String(100), index=True)
     name: Mapped[str] = mapped_column(String(100), index=True)
@@ -42,7 +44,9 @@ class Repository(Base):
 class GitHubEvent(Base):
     __tablename__ = "github_events"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     event_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     event_type: Mapped[str] = mapped_column(String(64), index=True)
     repo_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("repositories.id"), index=True)
@@ -61,7 +65,9 @@ class GitHubEvent(Base):
 class CommitRecord(Base):
     __tablename__ = "commits"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     sha: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     repo_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("repositories.id"), index=True)
     author_name: Mapped[str] = mapped_column(String(100))
@@ -75,7 +81,9 @@ class CommitRecord(Base):
 class DeveloperMetric(Base):
     __tablename__ = "developer_metrics"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
     repo_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("repositories.id"), index=True)
     metric_date: Mapped[str] = mapped_column(String(10), index=True)  # YYYY-MM-DD
     commit_count: Mapped[int] = mapped_column(Integer, default=0)
