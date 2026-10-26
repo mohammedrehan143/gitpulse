@@ -1,5 +1,6 @@
 import React from 'react';
-import { Radio, ExternalLink, RefreshCw, Terminal, Layers } from 'lucide-react';
+import { Radio, ExternalLink, RefreshCw, Terminal, Layers, Activity } from 'lucide-react';
+import { useKeepAlive } from '../hooks/useKeepAlive';
 
 interface HeaderProps {
   currentRepo: string;
@@ -14,6 +15,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRefreshAll,
   isRefreshing = false,
 }) => {
+  const { lastPulse, lastPulseAt, isPulsing, triggerPulse } = useKeepAlive();
   return (
     <header
       role="banner"
@@ -105,6 +107,29 @@ export const Header: React.FC<HeaderProps> = ({
           />
           <Radio size={12} color="#ef4444" />
           <span>{wsConnected ? 'Live Connected' : 'Stream Paused'}</span>
+        </div>
+
+        {/* Autonomous 5-Min Keep-Alive Heartbeat Pulse */}
+        <div
+          onClick={() => triggerPulse(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '6px',
+            backgroundColor: '#18181b',
+            border: '1px solid #27272a',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: '#ffffff',
+            cursor: 'pointer',
+            userSelect: 'none',
+          }}
+          title={`GitPulse 5-minute autonomous keep-alive pulse.\nLast pulse: ${lastPulseAt ? lastPulseAt.toLocaleTimeString() : 'Initializing'}\nDatabase status: ${lastPulse?.database || 'Connected'}\nClick to trigger instant database sync pulse.`}
+        >
+          <Activity size={12} color="#ef4444" />
+          <span>{isPulsing ? 'Pulsing...' : 'Pulse: 5m Active'}</span>
         </div>
 
         {/* Current Active Repo Pill */}

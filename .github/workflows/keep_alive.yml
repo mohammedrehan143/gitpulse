@@ -1,0 +1,41 @@
+name: GitPulse Keep-Alive & Self-Warming Pulse
+
+on:
+  schedule:
+    # Triggered automatically every 5 minutes (UTC) to prevent dormant sleep
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Custom Backend URL to pulse (optional)'
+        required: false
+        default: ''
+
+jobs:
+  heartbeat-pulse:
+    name: Autonomous Server Keep-Alive Pulse
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Keep-Alive Pulse Request
+        run: |
+          TARGET="${{ github.event.inputs.target_url || secrets.BACKEND_URL || vars.BACKEND_URL || secrets.RENDER_EXTERNAL_URL || 'https://gitpulse.onrender.com' }}"
+          echo "Sending 5-minute autonomous keep-alive pulse to: $TARGET"
+          
+          # Attempt primary keepalive endpoint with database touch
+          RESPONSE_CODE=$(curl -s -o response.json -w "%{http_code}" --max-time 45 "$TARGET/api/v1/keepalive?source=github_actions_cron" || echo "FAILED")
+          
+          if [ "$RESPONSE_CODE" = "200" ]; then
+            echo "Keep-alive pulse successful (HTTP 200)!"
+            cat response.json
+          else
+            echo "Primary endpoint returned $RESPONSE_CODE, trying fallback /keepalive or /health..."
+            FALLBACK_CODE=$(curl -s -o fallback.json -w "%{http_code}" --max-time 45 "$TARGET/keepalive" || echo "FAILED")
+            if [ "$FALLBACK_CODE" = "200" ]; then
+              echo "Fallback keepalive pulse successful (HTTP 200)!"
+              cat fallback.json
+            else
+              HEALTH_CODE=$(curl -s -o health.json -w "%{http_code}" --max-time 45 "$TARGET/health" || echo "FAILED")
+              echo "Health check response: $HEALTH_CODE"
+              cat health.json 2>/dev/null || true
+            fi
+          fi

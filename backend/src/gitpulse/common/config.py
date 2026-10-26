@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     ENABLE_PROFILE_MONITOR: bool = True
     PROFILE_MONITOR_INTERVAL_SECONDS: int = 20
 
+    # Keep-Alive & Self-Warming Pulse Engine
+    ENABLE_KEEP_ALIVE: bool = True
+    KEEP_ALIVE_INTERVAL_SECONDS: int = 300  # Exactly 5 minutes (300 seconds)
+    RENDER_EXTERNAL_URL: str = ""
+    BACKEND_PUBLIC_URL: str = ""
+
     # Supabase Relational Database & Cloud Storage
     DATABASE_URL: str = "sqlite+aiosqlite:///./gitpulse_dev.db"
     SUPABASE_URL: str = ""

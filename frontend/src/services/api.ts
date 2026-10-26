@@ -1,4 +1,5 @@
 import {
+  KeepAliveResponse,
   VelocityResponse,
   EventsResponse,
   RepositoriesResponse,
@@ -236,6 +237,16 @@ export async function triggerModelTraining(
   const res = await fetch(url, { method: 'POST' });
   if (!res.ok) {
     throw new Error(`Failed to trigger model training: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+
+export async function sendKeepAlivePulse(triggerSync = false): Promise<KeepAliveResponse> {
+  const url = `${getApiBaseUrl()}/keepalive?source=web_client_heartbeat&sync=${triggerSync}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Keep-alive pulse request failed: ${res.statusText}`);
   }
   return res.json();
 }

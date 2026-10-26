@@ -1,3 +1,16 @@
+export interface KeepAliveResponse {
+  status: string;
+  timestamp: string;
+  database: string;
+  repositories_count: number;
+  events_count: number;
+  last_synced_at: string | null;
+  uptime_seconds: number;
+  keep_alive_pulse: boolean;
+  source: string;
+  message: string;
+}
+
 export interface RepositoryRef {
   id: number;
   owner: string;

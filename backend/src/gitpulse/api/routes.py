@@ -29,6 +29,7 @@ from backend.src.gitpulse.api.schemas import (
     EventItem,
     EventsResponse,
     HealthResponse,
+    KeepAliveResponse,
     RefreshRepositoriesResponse,
     RepositoriesResponse,
     RepositoryRef,
@@ -90,6 +91,19 @@ async def health_check() -> HealthResponse:
         version="0.1.0",
         environment=settings.GITPULSE_ENV,
     )
+
+
+@router.get("/keepalive", response_model=KeepAliveResponse)
+@router.post("/keepalive", response_model=KeepAliveResponse)
+async def keep_alive_heartbeat(
+    source: str = Query("external", description="Source of keep-alive request"),
+    sync: bool = Query(False, description="Whether to trigger an on-demand database sync"),
+) -> KeepAliveResponse:
+    """Automated keep-alive endpoint that touches the database and refreshes sync state every 5 minutes."""
+    from backend.src.gitpulse.services.keep_alive_service import keep_alive_service
+
+    result = await keep_alive_service.execute_pulse_check(source=source, trigger_sync=sync)
+    return KeepAliveResponse(**result)
 
 
 @router.get("/repos", response_model=RepositoriesResponse)

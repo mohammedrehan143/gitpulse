@@ -78,7 +78,19 @@ async def lifespan(app: FastAPI):
 
         monitor_task = profile_monitor.start()
 
+    keep_alive_task = None
+    if settings.ENABLE_KEEP_ALIVE:
+        from backend.src.gitpulse.services.keep_alive_service import keep_alive_service
+
+        keep_alive_task = keep_alive_service.start()
+
     yield
+
+    if keep_alive_task:
+        from backend.src.gitpulse.services.keep_alive_service import keep_alive_service
+
+        keep_alive_service.stop()
+        await _safe_cancel_task(keep_alive_task)
 
     if monitor_task:
         from backend.src.gitpulse.services.profile_monitor import profile_monitor
@@ -130,6 +142,15 @@ async def root():
 async def system_health():
     """Top-level health check endpoint for cloud monitoring."""
     return {"status": "HEALTHY", "version": "0.1.0"}
+
+
+@app.get("/keepalive", tags=["system"])
+@app.post("/keepalive", tags=["system"])
+async def top_level_keepalive(source: str = "direct", sync: bool = False):
+    """Top-level keep-alive and self-warming pulse endpoint."""
+    from backend.src.gitpulse.services.keep_alive_service import keep_alive_service
+
+    return await keep_alive_service.execute_pulse_check(source=source, trigger_sync=sync)
 
 
 # Include API Routers

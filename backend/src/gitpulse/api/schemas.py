@@ -63,6 +63,19 @@ class HealthResponse(BaseModel):
     environment: str
 
 
+class KeepAliveResponse(BaseModel):
+    status: str
+    timestamp: str
+    database: str
+    repositories_count: int
+    events_count: int
+    last_synced_at: str | None = None
+    uptime_seconds: float
+    keep_alive_pulse: bool
+    source: str
+    message: str
+
+
 class DiscoveredRepositoryItem(BaseModel):
     id: int
     github_id: int | None = None
