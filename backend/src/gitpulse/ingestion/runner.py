@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 
@@ -36,19 +37,19 @@ def format_event_summary(ev_type: str, actor_login: str, payload: dict[str, Any]
         pr = payload.get("pull_request") or {}
         num = pr.get("number") or payload.get("number") or ""
         title = pr.get("title") or "Pull Request"
-        return f"New git pulled: PR #{num} ({action}) by {actor_login} — \"{title[:60]}\""
+        return f'New git pulled: PR #{num} ({action}) by {actor_login} — "{title[:60]}"'
 
     if ev_type in ("CommitCommentEvent", "CommitEvent"):
         comment = payload.get("comment") or {}
         msg = comment.get("body") or payload.get("message") or "Code change"
-        return f"New git committed: {actor_login} committed — \"{msg[:60]}\""
+        return f'New git committed: {actor_login} committed — "{msg[:60]}"'
 
     if ev_type == "IssuesEvent":
         action = payload.get("action") or "updated"
         issue = payload.get("issue") or {}
         num = issue.get("number") or payload.get("number") or ""
         title = issue.get("title") or "Issue"
-        return f"Issue #{num} ({action}) by {actor_login} — \"{title[:60]}\""
+        return f'Issue #{num} ({action}) by {actor_login} — "{title[:60]}"'
 
     if ev_type == "WatchEvent":
         return f"Starred repository by {actor_login}"
@@ -126,7 +127,9 @@ async def _persist_events_to_db(
                     payload = event.get("payload") or {}
                     action = payload.get("action") if isinstance(payload, dict) else None
                     ev_type = event.get("type", "UnknownEvent")
-                    summary_text = format_event_summary(ev_type, actor_login, payload if isinstance(payload, dict) else {})
+                    summary_text = format_event_summary(
+                        ev_type, actor_login, payload if isinstance(payload, dict) else {}
+                    )
 
                     db_event = GitHubEvent(
                         event_id=eid,

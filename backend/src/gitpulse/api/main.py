@@ -10,6 +10,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.src.gitpulse.api.intelligence_routes import router as intelligence_router
 from backend.src.gitpulse.api.routes import router
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
@@ -126,8 +127,9 @@ async def system_health():
     return {"status": "HEALTHY", "version": "0.1.0"}
 
 
-# Include API Router
+# Include API Routers
 app.include_router(router)
+app.include_router(intelligence_router)
 
 
 def start() -> None:

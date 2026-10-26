@@ -4,6 +4,14 @@ import {
   RepositoriesResponse,
   RefreshRepositoriesResponse,
   AIInsightsResponse,
+  ActivityForecastResponse,
+  AnomalyResponse,
+  IssueResolutionInsights,
+  IssuePredictRequest,
+  IssuePredictResponse,
+  PRReviewDelayInsights,
+  PRReviewPredictRequest,
+  PRReviewPredictResponse,
 } from '../types';
 
 export function getApiBaseUrl(): string {
@@ -130,4 +138,104 @@ export function createRepoWebSocket(
   }
 
   return ws;
+}
+
+// -------------------------------------------------------------
+// Data Science Intelligence API Services
+// -------------------------------------------------------------
+
+export async function fetchActivityForecast(
+  owner: string,
+  repo: string,
+  horizon = 7
+): Promise<ActivityForecastResponse> {
+  const url = `${getApiBaseUrl()}/intelligence/${owner}/${repo}/forecasting?horizon=${horizon}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch activity forecast: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchAnomalies(
+  owner: string,
+  repo: string,
+  threshold = 3.0
+): Promise<AnomalyResponse> {
+  const url = `${getApiBaseUrl()}/intelligence/${owner}/${repo}/anomalies?threshold=${threshold}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch activity anomalies: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchIssueResolutionInsights(
+  owner: string,
+  repo: string
+): Promise<IssueResolutionInsights> {
+  const url = `${getApiBaseUrl()}/intelligence/${owner}/${repo}/issue-resolution`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch issue resolution insights: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function predictIssueResolution(
+  owner: string,
+  repo: string,
+  data: IssuePredictRequest
+): Promise<IssuePredictResponse> {
+  const url = `${getApiBaseUrl()}/intelligence/${owner}/${repo}/issue-resolution/predict`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to predict issue resolution: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchPRReviewDelayInsights(
+  owner: string,
+  repo: string
+): Promise<PRReviewDelayInsights> {
+  const url = `${getApiBaseUrl()}/intelligence/${owner}/${repo}/pr-review-delay`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch PR review delay insights: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function predictPRReviewDelay(
+  owner: string,
+  repo: string,
+  data: PRReviewPredictRequest
+): Promise<PRReviewPredictResponse> {
+  const url = `${getApiBaseUrl()}/intelligence/${owner}/${repo}/pr-review-delay/predict`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to predict PR review delay: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function triggerModelTraining(
+  owner: string,
+  repo: string
+): Promise<{ status?: string; repository?: string }> {
+  const url = `${getApiBaseUrl()}/intelligence/${owner}/${repo}/train`;
+  const res = await fetch(url, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`Failed to trigger model training: ${res.statusText}`);
+  }
+  return res.json();
 }

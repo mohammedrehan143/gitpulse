@@ -123,3 +123,123 @@ Paginated stream of raw or enriched GitHub activity events.
   }
 }
 ```
+
+---
+
+## 5. Data Science Intelligence Contracts
+
+### 5.1 GET `/api/v1/intelligence/{owner}/{repo}/forecasting`
+Retrieves daily developer activity forecasts with 95% uncertainty intervals and baseline comparison.
+
+**Query Parameters:**
+- `horizon` (optional, integer, default: `7`, max: `30`): Forecast horizon in days.
+
+**Success Response (200 OK):**
+```json
+{
+  "status": "SUCCESS",
+  "model_type": "RidgeAutoregressiveWithLags",
+  "horizon_days": 7,
+  "history_days_analyzed": 35,
+  "forecast": [
+    {
+      "date": "2026-10-27",
+      "forecast": 14.2,
+      "lower_bound": 10.1,
+      "upper_bound": 18.3,
+      "is_weekend": false
+    }
+  ],
+  "history": [
+    { "date": "2026-10-26", "actual": 15 }
+  ],
+  "evaluation": {
+    "seasonal_naive_mae": 3.8,
+    "moving_average_mae": 4.1,
+    "ml_model_mae": 2.6,
+    "ml_model_rmse": 3.1,
+    "mae_improvement_pct": 31.6
+  }
+}
+```
+
+### 5.2 GET `/api/v1/intelligence/{owner}/{repo}/anomalies`
+Surfaces anomalous spikes and drops via rolling MAD and Isolation Forest without future leakage.
+
+**Query Parameters:**
+- `threshold` (optional, float, default: `3.0`, min: `1.0`, max: `10.0`): Modified z-score sensitivity.
+
+**Success Response (200 OK):**
+```json
+{
+  "status": "ANALYZED",
+  "threshold_used": 3.0,
+  "rolling_window_days": 14,
+  "total_days_evaluated": 35,
+  "total_anomalies": 1,
+  "anomalies": [
+    {
+      "date": "2026-10-20",
+      "metric": "commits",
+      "observed_value": 68.0,
+      "baseline_median": 12.0,
+      "anomaly_score": 4.82,
+      "severity": "HIGH",
+      "direction": "surge",
+      "explanation": "Unusual commits surge: 68 observed vs 12.0 rolling median (5.7x change, score: 4.82)."
+    }
+  ]
+}
+```
+
+### 5.3 POST `/api/v1/intelligence/{owner}/{repo}/issue-resolution/predict`
+Estimates resolution turnaround in hours for a candidate issue.
+
+**Request Payload:**
+```json
+{
+  "title": "Fix database connection leak under heavy concurrency",
+  "body": "Detailed stacktrace and pool timeout reproduction",
+  "labels": ["bug", "backend"]
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "status": "SUCCESS",
+  "predicted_duration_hours": 18.4,
+  "lower_bound_hours": 10.2,
+  "upper_bound_hours": 26.6,
+  "confidence_tier": "HIGH (Trained ML Ensemble)",
+  "model_version": "0.2.0",
+  "best_model": "HistGradientBoosting"
+}
+```
+
+### 5.4 POST `/api/v1/intelligence/{owner}/{repo}/pr-review-delay/predict`
+Estimates first-review turnaround in hours for an inbound PR.
+
+**Request Payload:**
+```json
+{
+  "title": "feat: Add high-throughput streaming Kafka connector",
+  "additions": 450,
+  "deletions": 50,
+  "changed_files": 8
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "status": "SUCCESS",
+  "predicted_delay_hours": 8.5,
+  "lower_bound_hours": 2.5,
+  "upper_bound_hours": 14.5,
+  "confidence_tier": "HIGH (Trained ML Ensemble)",
+  "model_version": "0.2.0",
+  "best_model": "HistGradientBoosting"
+}
+```
+

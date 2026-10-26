@@ -1,6 +1,6 @@
-# GitPulse — GitHub Activity Analytics Data Engineering Platform & Multi-Agent Architecture
+# GitPulse — GitHub Activity Analytics & Data Science Intelligence Platform
 
-GitPulse is an enterprise-grade GitHub Activity Analytics and Engineering Intelligence Platform paired with an autonomous, strictly hierarchical Multi-Agent System (MAS). It ingests high-frequency GitHub event streams (commits, issues, pull requests, code reviews) directly into Supabase (PostgreSQL / SQLite fallback), executes recurring event ingestion using a lightweight native Python scheduler (zero Airflow or Docker dependency), generates AI developer velocity insights via Groq (`openai/gpt-oss-120b`), dispatches real-time Discord webhook alerts, and surfaces live developer velocity metrics through a FastAPI backend and a React/TypeScript dashboard.
+GitPulse is an enterprise-grade GitHub Activity Analytics, Data Engineering, and Data Science Intelligence Platform paired with an autonomous, strictly hierarchical Multi-Agent System (MAS). It ingests high-frequency GitHub event streams (commits, issues, pull requests, code reviews) directly into Supabase (PostgreSQL / SQLite fallback), executes recurring incremental ingestion using a lightweight native Python pipeline (zero Airflow or Docker dependency), trains and serves 4 independent Data Science ML models (Activity Forecasting, Anomaly Detection, Issue Resolution Duration, PR First-Review Delay), generates AI developer velocity insights via Groq (`openai/gpt-oss-120b`), dispatches real-time Discord webhook alerts, and surfaces predictive analytics through a FastAPI backend and a React/TypeScript dashboard.
 
 ---
 
@@ -13,35 +13,63 @@ GitPulse is an enterprise-grade GitHub Activity Analytics and Engineering Intell
                                                  │
                                                  ▼
                                  ┌────────────────────────────────┐
-                                 │   GitPulse Ingestion Service   │
-                                 │   (Rate Limit & Pagination)    │
+                                 │    Data Ingestion Pipeline     │
+                                 │  (Incremental, Idempotent,     │
+                                 │   Quality Validation Checks)   │
                                  └───────────────┬────────────────┘
                                                  │
                                                  ▼
                                  ┌────────────────────────────────┐
-                                 │      Apache Kafka (KRaft)      │
-                                 │ (Topics: events, prs, commits) │
+                                 │   PostgreSQL / SQLite Storage  │
+                                 │   - pull_requests (normalized) │
+                                 │   - issues (normalized)        │
+                                 │   - github_events & commits    │
+                                 │   - pipeline_runs (audit)      │
                                  └───────┬───────────────┬────────┘
                                          │               │
                          ┌───────────────┘               └───────────────┐
                          ▼                                               ▼
          ┌───────────────────────────────┐               ┌───────────────────────────────┐
-         │     Apache Spark Streaming    │               │       PostgreSQL Storage      │
-         │   (Windowing, Deduplication)  │               │   (Transactional & Metadata)  │
-         └───────────────┬───────────────┘               └───────────────┬───────────────┘
-                         │                                               │
-                         ▼                                               ▼
-         ┌───────────────────────────────┐               ┌───────────────────────────────┐
-         │ Apache Iceberg / MinIO Lake   │               │     FastAPI Analytics API     │
-         │  (dbt Dimensional Transforms) │               │   (REST Endpoints & Schemas)  │
+         │     Data Science ML Engines   │               │     FastAPI Analytics API     │
+         │ - Module A: Activity Forecast │               │ - Velocity & Ingestion Routes │
+         │ - Module B: Anomaly Detection │◄──────────────┤ - Intelligence Endpoints      │
+         │ - Module C: Issue Turnaround  │  (Persisted   │ - Inference & Simulation APIs │
+         │ - Module D: PR Review Delay   │   Joblib ML)  │ - Real-Time WebSockets        │
          └───────────────────────────────┘               └───────────────┬───────────────┘
                                                                          │
                                                                          ▼
                                                          ┌───────────────────────────────┐
                                                          │   React 18 / Vite Dashboard   │
-                                                         │ (Velocity Charts & Heatmaps)  │
+                                                         │ - Velocity & Activity Streams │
+                                                         │ - 4 Data Science ML Panels    │
+                                                         │ - Interactive Simulators      │
                                                          └───────────────────────────────┘
 ```
+
+---
+
+## 2. Four Data Science Analytical Modules
+
+### Module A: Developer Activity Forecasting
+- **Objective**: Forecast future daily repository activity trajectory across 7-day and 14-day horizons.
+- **Methodology**: Autoregressive ML regressor (`Ridge` with Lags 1, 2, 3, 7, 14, rolling statistics `rolling_mean_7`, `rolling_std_7`, calendar features `day_of_week`, `is_weekend`) compared against Seasonal-Naive (7-day cycle) and Moving Average baselines.
+- **Leakage Prevention & Evaluation**: Evaluated using chronological holdouts. Reports MAE, RMSE, and improvement over baseline. Computes residual-based 95% uncertainty intervals.
+
+### Module B: Repository Anomaly Detection
+- **Objective**: Surface anomalous activity spikes or drop-offs across commits, PRs, and issues without alarm spam.
+- **Methodology**: Temporal rolling Median Absolute Deviation (MAD) modified z-score algorithm with safe zero-variance smoothing and multivariate Isolation Forest.
+- **Leakage Prevention & Temporal Ordering**: Strictly computes baseline medians on prior $[t-W, t-1]$ days (zero future leakage). Distinguishes ordinary fluctuations in low-activity repos from confirmed incidents.
+
+### Module C: Issue Resolution Time Prediction
+- **Objective**: Estimate resolution turnaround in hours for candidate GitHub issues.
+- **Features at Creation Time**: Title length, description length, code snippet flags, label one-hot tags (`bug`, `critical`, `enhancement`, `documentation`), creation weekday, and point-in-time open backlog workload.
+- **Censoring Handling & Baseline**: Excludes open issues from training duration calculation to eliminate downward bias; compares candidate regressors (`Ridge`, `RandomForest`, `HistGradientBoosting`) with $\log(1+y)$ target transform against historical median baseline. Persisted with versioned metadata via `joblib`.
+
+### Module D: Pull-Request Review Delay Analysis
+- **Objective**: Understand factors driving review turnaround and estimate time to first qualifying review.
+- **Features at PR Creation**: `additions`, `deletions`, `total_lines_changed`, `changed_files`, title/body length, weekday, concurrent PR workload.
+- **Statistical & Censoring Analysis**: Calculates Spearman rank correlations and size-bracket turnaround medians (Small, Medium, Large, XL). Right-censored unreviewed PRs tracked and reported explicitly. Employs `HistGradientBoosting` ensemble to predict first-review delay.
+
 
 ---
 

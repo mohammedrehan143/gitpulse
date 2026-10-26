@@ -94,6 +94,10 @@ metastore_db/
 derby.log
 warehouse/
 
+# Model artifacts and binary checkpoints
+models/
+*.joblib
+
 # Logs
 logs/
 *.log

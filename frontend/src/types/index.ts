@@ -85,3 +85,141 @@ export interface AIInsightsResponse {
   insights: string;
 }
 
+// Data Science Intelligence Types
+export interface ForecastPoint {
+  date: string;
+  forecast: number;
+  lower_bound: number;
+  upper_bound: number;
+  is_weekend: boolean;
+}
+
+export interface ActivityForecastResponse {
+  status: string;
+  model_type?: string;
+  horizon_days: number;
+  history_days_analyzed: number;
+  forecast: ForecastPoint[];
+  history: Array<{ date: string; actual: number }>;
+  evaluation?: {
+    seasonal_naive_mae: number;
+    moving_average_mae: number;
+    ml_model_mae: number;
+    ml_model_rmse: number;
+    mae_improvement_pct: number;
+  };
+  message?: string;
+}
+
+export interface AnomalyItem {
+  date: string;
+  metric: string;
+  observed_value: number;
+  baseline_median: number;
+  anomaly_score: number;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  direction: 'surge' | 'drop' | 'outlier';
+  explanation: string;
+}
+
+export interface AnomalyResponse {
+  status: string;
+  threshold_used: number;
+  rolling_window_days: number;
+  total_days_evaluated: number;
+  total_anomalies: number;
+  anomalies: AnomalyItem[];
+  message?: string;
+}
+
+export interface IssuePredictRequest {
+  title: string;
+  body?: string;
+  labels?: string[];
+}
+
+export interface IssuePredictResponse {
+  status: string;
+  predicted_duration_hours: number;
+  lower_bound_hours?: number;
+  upper_bound_hours?: number;
+  confidence_tier: string;
+  model_version: string;
+  best_model?: string;
+  baseline_median_hours?: number;
+  notes?: string;
+}
+
+export interface IssueResolutionInsights {
+  status: string;
+  model_version?: string;
+  best_model?: string;
+  sample_size?: number;
+  test_size?: number;
+  baseline_metrics?: {
+    median_hours: number;
+    mae_hours: number;
+    medae_hours: number;
+  };
+  candidate_models?: Record<string, { mae_hours: number; medae_hours: number; rmse_hours: number }>;
+  improvement_over_baseline_pct?: number;
+  message?: string;
+}
+
+export interface PRReviewPredictRequest {
+  title: string;
+  additions?: number;
+  deletions?: number;
+  changed_files?: number;
+}
+
+export interface PRReviewPredictResponse {
+  status: string;
+  predicted_delay_hours: number;
+  lower_bound_hours?: number;
+  upper_bound_hours?: number;
+  confidence_tier: string;
+  model_version: string;
+  best_model?: string;
+  baseline_median_hours?: number;
+  notes?: string;
+}
+
+export interface PRReviewDelayInsights {
+  statistics?: {
+    status: string;
+    censoring_stats?: {
+      total_prs_analyzed: number;
+      reviewed_prs: number;
+      unreviewed_censored_prs: number;
+      censoring_rate_pct: number;
+    };
+    correlations?: Record<string, {
+      spearman_correlation: number;
+      p_value: number;
+      statistically_significant: boolean;
+    }>;
+    size_brackets?: Array<{
+      bracket: string;
+      count: number;
+      median_delay_hours: number;
+    }>;
+    overall_median_delay_hours?: number;
+    message?: string;
+  };
+  training?: {
+    status: string;
+    best_model?: string;
+    sample_size?: number;
+    baseline_metrics?: {
+      median_hours: number;
+      mae_hours: number;
+      medae_hours: number;
+    };
+    candidate_models?: Record<string, { mae_hours: number; medae_hours: number; rmse_hours: number }>;
+    improvement_over_baseline_pct?: number;
+    message?: string;
+  };
+}
+
+

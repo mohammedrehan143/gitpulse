@@ -211,11 +211,18 @@ class GitHubClient:
         owner: str,
         repo: str,
         state: str = "all",
+        page: int = 1,
         per_page: int = 30,
     ) -> list[dict[str, Any]]:
         """Fetches real pull requests directly from GitHub REST API."""
+        if (
+            self.rate_limit_remaining is not None
+            and self.rate_limit_remaining <= self.rate_limit_buffer
+        ):
+            return await self.fetch_synthetic_pull_requests(owner, repo)
+
         url = f"{self.base_url}/repos/{owner}/{repo}/pulls"
-        params = {"state": state, "per_page": per_page}
+        params = {"state": state, "page": page, "per_page": per_page}
 
         async with httpx.AsyncClient(timeout=12.0) as client:
             try:
@@ -230,6 +237,92 @@ class GitHubClient:
                 return []
             except httpx.RequestError as exc:
                 logger.error("Network error fetching PRs for %s/%s: %s", owner, repo, exc)
+                return []
+
+    async def fetch_pull_request_details(
+        self,
+        owner: str,
+        repo: str,
+        number: int,
+    ) -> dict[str, Any] | None:
+        """Fetches detailed pull request attributes including additions, deletions, changed_files."""
+        url = f"{self.base_url}/repos/{owner}/{repo}/pulls/{number}"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                resp = await client.get(url, headers=self._get_headers())
+                self._update_rate_limits(resp.headers)
+                if resp.status_code == 200:
+                    return resp.json()
+                return None
+            except httpx.RequestError as exc:
+                logger.error(
+                    "Network error fetching PR #%d details for %s/%s: %s", number, owner, repo, exc
+                )
+                return None
+
+    async def fetch_pull_request_reviews(
+        self,
+        owner: str,
+        repo: str,
+        number: int,
+    ) -> list[dict[str, Any]]:
+        """Fetches reviews for a specific pull request to extract first review timing."""
+        url = f"{self.base_url}/repos/{owner}/{repo}/pulls/{number}/reviews"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                resp = await client.get(url, headers=self._get_headers())
+                self._update_rate_limits(resp.headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data if isinstance(data, list) else []
+                return []
+            except httpx.RequestError as exc:
+                logger.error(
+                    "Network error fetching reviews for PR #%d on %s/%s: %s",
+                    number,
+                    owner,
+                    repo,
+                    exc,
+                )
+                return []
+
+    async def fetch_repository_issues(
+        self,
+        owner: str,
+        repo: str,
+        state: str = "all",
+        since: str | None = None,
+        page: int = 1,
+        per_page: int = 50,
+    ) -> list[dict[str, Any]]:
+        """Fetches issues (excluding pull requests) with pagination and incremental timestamp."""
+        if (
+            self.rate_limit_remaining is not None
+            and self.rate_limit_remaining <= self.rate_limit_buffer
+        ):
+            return await self.fetch_synthetic_issues(owner, repo)
+
+        url = f"{self.base_url}/repos/{owner}/{repo}/issues"
+        params: dict[str, Any] = {"state": state, "page": page, "per_page": per_page}
+        if since:
+            params["since"] = since
+
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            try:
+                resp = await client.get(url, headers=self._get_headers(), params=params)
+                self._update_rate_limits(resp.headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if isinstance(data, list):
+                        # Filter out PRs that GitHub includes in /issues endpoint
+                        return [item for item in data if "pull_request" not in item]
+                    return []
+                logger.warning(
+                    "GitHub API /issues returned status %d for %s/%s", resp.status_code, owner, repo
+                )
+                return []
+            except httpx.RequestError as exc:
+                logger.error("Network error fetching issues for %s/%s: %s", owner, repo, exc)
                 return []
 
     async def fetch_user_events(
@@ -470,3 +563,98 @@ class GitHubClient:
                 "created_at": "2026-10-24T20:05:00Z",
             },
         ]
+
+    async def fetch_synthetic_pull_requests(self, owner: str, repo: str) -> list[dict[str, Any]]:
+        """Generates realistic PRs across recent 60 days with sizes and review timing for testing & offline mode."""
+        import random
+        from datetime import UTC, datetime, timedelta
+
+        prs: list[dict[str, Any]] = []
+        base_time = datetime(2026, 10, 26, 12, 0, 0, tzinfo=UTC)
+        rng = random.Random(hash(f"{owner}/{repo}") % 10000)
+
+        for i in range(1, 46):
+            created_days_ago = rng.uniform(1.0, 50.0)
+            created_dt = base_time - timedelta(days=created_days_ago)
+
+            # Review delay ranges from 1.5 hours to 72 hours
+            delay_hours = max(0.5, rng.expovariate(1.0 / 18.0))
+            is_reviewed = rng.random() > 0.1  # 90% reviewed, 10% unreviewed (censored)
+            review_dt = (created_dt + timedelta(hours=delay_hours)) if is_reviewed else None
+
+            # Closed / merged timing
+            is_merged = is_reviewed and (rng.random() > 0.2)
+            merged_dt = (review_dt + timedelta(hours=rng.uniform(2.0, 48.0))) if is_merged else None
+            state = "closed" if is_merged else "open"
+
+            additions = int(rng.gammavariate(2.5, 60.0)) + 5
+            deletions = int(rng.gammavariate(1.8, 25.0)) + 1
+            files = max(1, int(additions / rng.uniform(20.0, 80.0)))
+
+            prs.append(
+                {
+                    "id": 800000 + i,
+                    "number": 200 + i,
+                    "title": f"feat({repo}): PR #{200 + i} improve performance and data ingestion pipeline",
+                    "body": f"Refactored data layer and added unit tests for PR #{200 + i}.",
+                    "state": state,
+                    "user": {"login": f"contributor_{i % 8}"},
+                    "created_at": created_dt.isoformat(),
+                    "updated_at": (merged_dt or review_dt or created_dt).isoformat(),
+                    "closed_at": merged_dt.isoformat() if merged_dt else None,
+                    "merged_at": merged_dt.isoformat() if merged_dt else None,
+                    "first_reviewed_at": review_dt.isoformat() if review_dt else None,
+                    "additions": additions,
+                    "deletions": deletions,
+                    "changed_files": files,
+                    "review_comments": rng.randint(0, 10),
+                }
+            )
+        return prs
+
+    async def fetch_synthetic_issues(self, owner: str, repo: str) -> list[dict[str, Any]]:
+        """Generates realistic closed and open issues across 60 days for testing & offline mode."""
+        import random
+        from datetime import UTC, datetime, timedelta
+
+        issues: list[dict[str, Any]] = []
+        base_time = datetime(2026, 10, 26, 12, 0, 0, tzinfo=UTC)
+        rng = random.Random(hash(f"{owner}/{repo}_issues") % 10000)
+
+        label_pool = [
+            ["bug", "critical"],
+            ["enhancement"],
+            ["documentation"],
+            ["backend", "performance"],
+            ["frontend", "ui"],
+            ["data-pipeline"],
+        ]
+
+        for i in range(1, 51):
+            created_days_ago = rng.uniform(2.0, 60.0)
+            created_dt = base_time - timedelta(days=created_days_ago)
+
+            # Resolution hours follows skewed log-normal distribution (median ~ 18 hours)
+            res_hours = max(0.5, rng.lognormvariate(mu=2.8, sigma=1.1))
+            is_closed = rng.random() > 0.15  # 85% resolved, 15% open
+            closed_dt = (created_dt + timedelta(hours=res_hours)) if is_closed else None
+            state = "closed" if is_closed else "open"
+
+            selected_labels = rng.choice(label_pool)
+
+            issues.append(
+                {
+                    "id": 700000 + i,
+                    "number": 100 + i,
+                    "title": f"Issue #{100 + i}: {selected_labels[0].capitalize()} in {repo} streaming event parser",
+                    "body": f"Detailed description for issue #{100 + i} with stacktrace and reproduction steps.",
+                    "state": state,
+                    "user": {"login": f"user_{i % 10}"},
+                    "labels": [{"name": lbl} for lbl in selected_labels],
+                    "comments": rng.randint(0, 12),
+                    "created_at": created_dt.isoformat(),
+                    "updated_at": (closed_dt or created_dt).isoformat(),
+                    "closed_at": closed_dt.isoformat() if closed_dt else None,
+                }
+            )
+        return issues
