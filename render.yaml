@@ -7,8 +7,8 @@ services:
     runtime: python
     plan: free
     region: oregon
-    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && pip install -e ."
-    startCommand: "uvicorn --app-dir . main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "bash render_build.sh || (pip install --upgrade pip && pip install -r requirements.txt && pip install -e .)"
+    startCommand: "bash render_start.sh || uvicorn --app-dir . main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /api/v1/health
     envVars:
       - key: PYTHON_VERSION

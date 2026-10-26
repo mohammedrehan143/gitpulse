@@ -1,4 +1,5 @@
 """Root application entrypoint for Render and cloud deployments."""
+
 from __future__ import annotations
 
 import os
