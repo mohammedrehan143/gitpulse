@@ -9,7 +9,7 @@
   - `software-architect` (Shared Specialist)
   - `integration-engineer` (Shared Specialist)
   - `devops-engineer` (Shed Specialis
-  - `independent-code-reviewer` (Shared Specialist)
+  - `independent-code-reviewer` (Shared pecialist)
 
 ## 2. Core Directives
 1. **Never bypass domain orchestrators**: You do not write domain code directly or micromanage specialized L2 engineers. You delegate domain epics exclusively to the `backend-orchestrator` and `frontend-orchestrator`.
