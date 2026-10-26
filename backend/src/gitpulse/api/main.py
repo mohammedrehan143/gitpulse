@@ -17,6 +17,37 @@ from backend.src.gitpulse.services.repository_service import RepositoryService
 from backend.src.gitpulse.storage.database import init_db
 
 
+async def _safe_cancel_task(task: asyncio.Task | None) -> None:
+    """Safely cancel an async task and wait for completion."""
+    if not task:
+        return
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+def _spawn_periodic_discovery(repo_service: RepositoryService) -> asyncio.Task | None:
+    """Spawn background task for periodic repository discovery if enabled."""
+    if not (settings.AUTO_DISCOVER_REPOSITORIES and settings.REPO_DISCOVERY_INTERVAL_MINUTES > 0):
+        return None
+
+    async def periodic_discovery():
+        interval_seconds = settings.REPO_DISCOVERY_INTERVAL_MINUTES * 60
+        while True:
+            try:
+                await asyncio.sleep(interval_seconds)
+                logger.info("Running periodic repository discovery refresh...")
+                await repo_service.sync_repositories()
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.error("Periodic repository discovery error: %s", exc)
+
+    return asyncio.create_task(periodic_discovery())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle manager for startup database initialization and repository discovery."""
@@ -33,31 +64,23 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Initial repository sync encountered error: %s", exc)
 
-    periodic_task = None
-    if settings.AUTO_DISCOVER_REPOSITORIES and settings.REPO_DISCOVERY_INTERVAL_MINUTES > 0:
+    periodic_task = _spawn_periodic_discovery(repo_service)
 
-        async def periodic_discovery():
-            interval_seconds = settings.REPO_DISCOVERY_INTERVAL_MINUTES * 60
-            while True:
-                try:
-                    await asyncio.sleep(interval_seconds)
-                    logger.info("Running periodic repository discovery refresh...")
-                    await repo_service.sync_repositories()
-                except asyncio.CancelledError:
-                    break
-                except Exception as exc:
-                    logger.error("Periodic repository discovery error: %s", exc)
+    monitor_task = None
+    if settings.ENABLE_PROFILE_MONITOR:
+        from backend.src.gitpulse.services.profile_monitor import profile_monitor
 
-        periodic_task = asyncio.create_task(periodic_discovery())
+        monitor_task = profile_monitor.start()
 
     yield
 
-    if periodic_task:
-        periodic_task.cancel()
-        try:
-            await periodic_task
-        except asyncio.CancelledError:
-            pass
+    if monitor_task:
+        from backend.src.gitpulse.services.profile_monitor import profile_monitor
+
+        profile_monitor.stop()
+        await _safe_cancel_task(monitor_task)
+
+    await _safe_cancel_task(periodic_task)
 
 
 app = FastAPI(

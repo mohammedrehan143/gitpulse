@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     REPO_DISCOVERY_INTERVAL_MINUTES: int = 60
     INGESTION_SCHEDULE_INTERVAL_MINUTES: int = 60
     GITHUB_TARGET_REPOS: str = "apache/spark,fastapi/fastapi,facebook/react"
+    GITHUB_TARGET_USER: str = "mohammedrehan143"
+    ENABLE_PROFILE_MONITOR: bool = True
+    PROFILE_MONITOR_INTERVAL_SECONDS: int = 20
 
     # Supabase Relational Database & Cloud Storage
     DATABASE_URL: str = "sqlite+aiosqlite:///./gitpulse_dev.db"

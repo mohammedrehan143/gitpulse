@@ -1,6 +1,6 @@
 """Universal Git Hook Installer for GitPulse.
 
-Configures a global Git hook on your system so that ANY repository you push or commit to
+Configures global Git hooks on your system so that ANY repository you push or commit to
 automatically dispatches an engineering activity alert to your Discord channel via GitPulse.
 """
 
@@ -28,14 +28,13 @@ def main():
 
     python_executable = sys.executable
 
-    # Create post-commit hook script
+    # 1. Create post-commit hook script
     post_commit_script = global_hooks_dir / "post-commit"
-    hook_content = f"""#!/usr/bin/env bash
-# GitPulse Universal Activity Hook
+    post_commit_content = f"""#!/usr/bin/env bash
+# GitPulse Universal Post-Commit Hook
 
 REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
 if [ -n "$REMOTE_URL" ]; then
-    # Extract owner/repo from remote URL
     REPO_NAME=$(echo "$REMOTE_URL" | sed -E 's/.*github\\.com[:\\/](.*)\\.git/\\1/' | sed -E 's/.*github\\.com[:\\/](.*)/\\1/')
 else
     REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
@@ -46,7 +45,6 @@ PUSHER=$(git config user.name || echo "developer")
 SHA=$(git rev-parse HEAD 2>/dev/null || echo "head")
 MSG=$(git log -1 --pretty=%B 2>/dev/null | head -n 1 || echo "Commit update")
 
-# Call GitPulse universal notification engine
 "{python_executable}" "{notif_script}" \\
     --repo "$REPO_NAME" \\
     --pusher "$PUSHER" \\
@@ -54,14 +52,48 @@ MSG=$(git log -1 --pretty=%B 2>/dev/null | head -n 1 || echo "Commit update")
     --message "$MSG" \\
     --sha "$SHA" > /dev/null 2>&1 || true
 """
+    post_commit_script.write_text(post_commit_content, encoding="utf-8")
 
-    post_commit_script.write_text(hook_content, encoding="utf-8")
+    # 2. Create pre-push hook script (triggers on git push)
+    pre_push_script = global_hooks_dir / "pre-push"
+    pre_push_content = f"""#!/usr/bin/env bash
+# GitPulse Universal Pre-Push Hook
+
+REMOTE_NAME="$1"
+REMOTE_URL="$2"
+
+if [ -z "$REMOTE_URL" ]; then
+    REMOTE_URL=$(git remote get-url "$REMOTE_NAME" 2>/dev/null || git remote get-url origin 2>/dev/null || echo "")
+fi
+
+if [ -n "$REMOTE_URL" ]; then
+    REPO_NAME=$(echo "$REMOTE_URL" | sed -E 's/.*github\\.com[:\\/](.*)\\.git/\\1/' | sed -E 's/.*github\\.com[:\\/](.*)/\\1/')
+else
+    REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+fi
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+PUSHER=$(git config user.name || echo "developer")
+SHA=$(git rev-parse HEAD 2>/dev/null || echo "head")
+MSG=$(git log -1 --pretty=%B 2>/dev/null | head -n 1 || echo "Git push to remote")
+
+"{python_executable}" "{notif_script}" \\
+    --repo "$REPO_NAME" \\
+    --pusher "$PUSHER" \\
+    --branch "$BRANCH" \\
+    --message "$MSG" \\
+    --sha "$SHA" > /dev/null 2>&1 || true
+
+exit 0
+"""
+    pre_push_script.write_text(pre_push_content, encoding="utf-8")
 
     # Set executable permissions on Unix systems
-    try:
-        os.chmod(post_commit_script, 0o755)
-    except Exception:
-        pass
+    for script in (post_commit_script, pre_push_script):
+        try:
+            os.chmod(script, 0o755)
+        except Exception:
+            pass
 
     # Configure Git global hooksPath
     hook_path_str = str(global_hooks_dir).replace("\\", "/")
@@ -69,10 +101,11 @@ MSG=$(git log -1 --pretty=%B 2>/dev/null | head -n 1 || echo "Commit update")
     res = subprocess.run(cmd, capture_output=True, text=True)
 
     if res.returncode == 0:
-        print(f"\n[SUCCESS] Universal hook installed to: {hook_path_str}")
+        print(f"\n[SUCCESS] Universal hooks installed to: {hook_path_str}")
+        print("  - post-commit: triggers Discord alert on every local commit")
+        print("  - pre-push:    triggers Discord alert on every 'git push'")
         print("[SUCCESS] Configured: git config --global core.hooksPath")
-        print("\nFrom now on, whenever you commit or push in ANY repository on this machine,")
-        print("GitPulse will automatically send an automated alert to your Discord channel!\n")
+        print("\nGitPulse is now active for EVERY repository on this machine!\n")
     else:
         print(f"\n[ERROR] Failed to configure git global hooksPath: {res.stderr}")
 

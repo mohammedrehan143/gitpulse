@@ -232,6 +232,34 @@ class GitHubClient:
                 logger.error("Network error fetching PRs for %s/%s: %s", owner, repo, exc)
                 return []
 
+    async def fetch_user_events(
+        self,
+        username: str,
+        page: int = 1,
+        per_page: int = 30,
+    ) -> list[dict[str, Any]]:
+        """Fetches public event stream for an entire GitHub user profile across all repositories."""
+        url = f"{self.base_url}/users/{username}/events"
+        params = {"page": page, "per_page": per_page}
+
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            try:
+                resp = await client.get(url, headers=self._get_headers(), params=params)
+                self._update_rate_limits(resp.headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data if isinstance(data, list) else []
+                logger.warning(
+                    "GitHub API /users/%s/events returned status %d: %s",
+                    username,
+                    resp.status_code,
+                    resp.text[:120],
+                )
+                return []
+            except httpx.RequestError as exc:
+                logger.error("Network error fetching events for user %s: %s", username, exc)
+                return []
+
     async def get_authenticated_user(self) -> dict[str, Any] | None:
         """Retrieves profile information for the authenticated GitHub token."""
         if not self.token:

@@ -128,6 +128,142 @@ class NotificationService:
             fields=fields,
         )
 
+    async def notify_github_event(self, event: dict[str, Any]) -> bool:
+        """Universal dispatcher that sends Discord notifications for ANY GitHub event."""
+        if not self.webhook_url:
+            return False
+
+        ev_type = event.get("type", "UnknownEvent")
+        repo_data = event.get("repo", {})
+        repo_name = (
+            repo_data.get("name") if isinstance(repo_data, dict) else str(repo_data or "general")
+        )
+        actor_data = event.get("actor", {})
+        actor = (
+            actor_data.get("login")
+            if isinstance(actor_data, dict)
+            else str(actor_data or "developer")
+        )
+        payload = event.get("payload", {}) or {}
+
+        if ev_type == "PushEvent":
+            commits = payload.get("commits") or []
+            ref = payload.get("ref") or "refs/heads/main"
+            branch = ref.replace("refs/heads/", "")
+            head = payload.get("head") or ""
+            compare_url = f"https://github.com/{repo_name}/commit/{head}" if head else None
+            return await self.notify_git_push(
+                repo_name=repo_name,
+                pusher=actor,
+                branch=branch,
+                commits=commits,
+                compare_url=compare_url,
+            )
+
+        if ev_type == "PullRequestEvent":
+            action = payload.get("action") or "updated"
+            pr = payload.get("pull_request") or {}
+            pr_num = pr.get("number") or payload.get("number") or ""
+            pr_title = pr.get("title") or "Pull Request"
+            pr_url = pr.get("html_url") or f"https://github.com/{repo_name}/pull/{pr_num}"
+            return await self.send_discord_notification(
+                title=f"🔀 Pull Request {action.upper()}: {repo_name} #{pr_num}",
+                description=f"**{actor}** {action} pull request: **[{pr_title}]({pr_url})**",
+                color=0x8B5CF6,
+                fields=[
+                    {
+                        "name": "📦 Repository",
+                        "value": f"[{repo_name}](https://github.com/{repo_name})",
+                        "inline": True,
+                    },
+                    {"name": "👤 Author", "value": f"**{actor}**", "inline": True},
+                    {
+                        "name": "🔗 PR Link",
+                        "value": f"[Open PR #{pr_num}]({pr_url})",
+                        "inline": True,
+                    },
+                ],
+            )
+
+        if ev_type == "IssuesEvent":
+            action = payload.get("action") or "updated"
+            issue = payload.get("issue") or {}
+            num = issue.get("number") or payload.get("number") or ""
+            title_i = issue.get("title") or "Issue"
+            url_i = issue.get("html_url") or f"https://github.com/{repo_name}/issues/{num}"
+            return await self.send_discord_notification(
+                title=f"⚠️ Issue {action.upper()}: {repo_name} #{num}",
+                description=f"**{actor}** {action} issue: **[{title_i}]({url_i})**",
+                color=0xF59E0B,
+                fields=[
+                    {
+                        "name": "📦 Repository",
+                        "value": f"[{repo_name}](https://github.com/{repo_name})",
+                        "inline": True,
+                    },
+                    {"name": "👤 Author", "value": f"**{actor}**", "inline": True},
+                    {
+                        "name": "🔗 Issue Link",
+                        "value": f"[Open Issue #{num}]({url_i})",
+                        "inline": True,
+                    },
+                ],
+            )
+
+        if ev_type == "CreateEvent":
+            ref_type = payload.get("ref_type", "branch")
+            ref_name = payload.get("ref") or "new"
+            return await self.send_discord_notification(
+                title=f"🌿 New {ref_type.capitalize()} Created: {repo_name}",
+                description=f"**{actor}** created {ref_type} `{ref_name}` in **[{repo_name}](https://github.com/{repo_name})**.",
+                color=0x38BDF8,
+                fields=[
+                    {
+                        "name": "📦 Repository",
+                        "value": f"[{repo_name}](https://github.com/{repo_name})",
+                        "inline": True,
+                    },
+                    {
+                        "name": f"🌿 {ref_type.capitalize()}",
+                        "value": f"`{ref_name}`",
+                        "inline": True,
+                    },
+                    {"name": "👤 Created By", "value": f"**{actor}**", "inline": True},
+                ],
+            )
+
+        if ev_type == "DeleteEvent":
+            ref_type = payload.get("ref_type", "branch")
+            ref_name = payload.get("ref") or ""
+            return await self.send_discord_notification(
+                title=f"🗑️ {ref_type.capitalize()} Deleted: {repo_name}",
+                description=f"**{actor}** deleted {ref_type} `{ref_name}` in **[{repo_name}](https://github.com/{repo_name})**.",
+                color=0xEF4444,
+                fields=[
+                    {
+                        "name": "📦 Repository",
+                        "value": f"[{repo_name}](https://github.com/{repo_name})",
+                        "inline": True,
+                    },
+                    {"name": "👤 Deleted By", "value": f"**{actor}**", "inline": True},
+                ],
+            )
+
+        # Default fallback for other events (WatchEvent, ForkEvent, ReleaseEvent, etc.)
+        return await self.send_discord_notification(
+            title=f"⚡ GitHub Activity: {repo_name} ({ev_type})",
+            description=f"**{actor}** triggered `{ev_type}` on **[{repo_name}](https://github.com/{repo_name})**.",
+            color=0x6366F1,
+            fields=[
+                {
+                    "name": "📦 Repository",
+                    "value": f"[{repo_name}](https://github.com/{repo_name})",
+                    "inline": True,
+                },
+                {"name": "👤 Actor", "value": f"**{actor}**", "inline": True},
+            ],
+        )
+
 
 def main():
     """CLI utility to dispatch a test or automated Git push alert to Discord."""

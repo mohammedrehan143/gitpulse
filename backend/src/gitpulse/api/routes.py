@@ -556,6 +556,23 @@ async def universal_push_notify(
     )
 
 
+@router.post("/profile/poll")
+@router.post("/profile/{username}/poll")
+async def trigger_profile_poll(username: str | None = None) -> dict[str, Any]:
+    """Manually triggers immediate polling of GitHub user profile activity and dispatches Discord alerts."""
+    from backend.src.gitpulse.services.profile_monitor import ProfileMonitorService
+
+    target_user = username or settings.GITHUB_TARGET_USER or "mohammedrehan143"
+    monitor = ProfileMonitorService(username=target_user)
+    count = await monitor.poll_and_notify()
+    return {
+        "status": "SUCCESS",
+        "username": target_user,
+        "new_alerts_dispatched": count,
+        "polled_at": datetime.now(UTC).isoformat(),
+    }
+
+
 @router.websocket("/ws/repos/{owner}/{repo}")
 async def websocket_repo_feed(websocket: WebSocket, owner: str, repo: str) -> None:
     """Real-time WebSocket stream emitting live developer events."""
