@@ -33,6 +33,10 @@ from backend.src.gitpulse.api.schemas import (
     RepositoriesResponse,
     RepositoryRef,
     TimelinePoint,
+    UniversalCommitNotificationRequest,
+    UniversalCommitNotificationResponse,
+    UniversalPullNotificationRequest,
+    UniversalPullNotificationResponse,
     UniversalPushNotificationRequest,
     UniversalPushNotificationResponse,
     VelocityResponse,
@@ -553,6 +557,51 @@ async def universal_push_notify(
         status="SUCCESS" if delivered else "SKIPPED",
         delivered=delivered,
         repository=payload.repo,
+        message="New git pushed",
+    )
+
+
+@router.post("/notify/pull", response_model=UniversalPullNotificationResponse)
+async def universal_pull_notify(
+    payload: UniversalPullNotificationRequest,
+) -> UniversalPullNotificationResponse:
+    """Universal notification endpoint that sends rich Discord alerts for pull requests."""
+    notifier = NotificationService(discord_webhook_url=payload.discord_webhook_url)
+    delivered = await notifier.notify_git_pull(
+        repo_name=payload.repo,
+        actor=payload.actor,
+        action=payload.action,
+        pr_number=payload.pr_number,
+        pr_title=payload.pr_title,
+        pr_url=payload.pr_url,
+    )
+    return UniversalPullNotificationResponse(
+        status="SUCCESS" if delivered else "SKIPPED",
+        delivered=delivered,
+        repository=payload.repo,
+        message="New git pulled",
+    )
+
+
+@router.post("/notify/commit", response_model=UniversalCommitNotificationResponse)
+async def universal_commit_notify(
+    payload: UniversalCommitNotificationRequest,
+) -> UniversalCommitNotificationResponse:
+    """Universal notification endpoint that sends rich Discord alerts when a commit is registered."""
+    notifier = NotificationService(discord_webhook_url=payload.discord_webhook_url)
+    delivered = await notifier.notify_git_commit(
+        repo_name=payload.repo,
+        author=payload.author,
+        sha=payload.sha,
+        message=payload.message,
+        branch=payload.branch,
+        commit_url=payload.commit_url,
+    )
+    return UniversalCommitNotificationResponse(
+        status="SUCCESS" if delivered else "SKIPPED",
+        delivered=delivered,
+        repository=payload.repo,
+        message="New git committed",
     )
 
 

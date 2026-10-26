@@ -62,3 +62,70 @@ class GitTools:
         """Returns the name of the current active branch."""
         res = self._run_git(["branch", "--show-current"])
         return res.stdout.strip() or "main"
+
+    def commit(self, message: str, stage_all: bool = False) -> dict[str, Any]:
+        """Commits changes with well-designed output formatting."""
+        if stage_all:
+            self._run_git(["add", "-A"])
+
+        res = self._run_git(["commit", "-m", message])
+        if res.returncode != 0:
+            err = res.stderr.strip() or res.stdout.strip()
+            return {
+                "success": False,
+                "error": err,
+                "output": f"❌ [GitPulse] Commit failed: {err}",
+            }
+
+        sha_res = self._run_git(["rev-parse", "--short", "HEAD"])
+        sha = sha_res.stdout.strip() if sha_res.returncode == 0 else "head"
+        formatted_output = f"✨ [GitPulse] New git committed: \"{message}\" (SHA: {sha})"
+        return {
+            "success": True,
+            "sha": sha,
+            "message": message,
+            "output": formatted_output,
+            "raw": res.stdout.strip(),
+        }
+
+    def push(self, remote: str = "origin", branch: str | None = None) -> dict[str, Any]:
+        """Pushes branch commits to remote repository with well-designed output."""
+        target_branch = branch or self.get_current_branch()
+        res = self._run_git(["push", remote, target_branch])
+        if res.returncode != 0:
+            err = res.stderr.strip() or res.stdout.strip()
+            return {
+                "success": False,
+                "error": err,
+                "output": f"❌ [GitPulse] Push failed: {err}",
+            }
+
+        formatted_output = f"🚀 [GitPulse] New git pushed: successfully pushed to {remote}/{target_branch}!"
+        return {
+            "success": True,
+            "remote": remote,
+            "branch": target_branch,
+            "output": formatted_output,
+            "raw": res.stdout.strip() or res.stderr.strip(),
+        }
+
+    def pull(self, remote: str = "origin", branch: str | None = None) -> dict[str, Any]:
+        """Pulls latest updates from remote repository with well-designed output."""
+        target_branch = branch or self.get_current_branch()
+        res = self._run_git(["pull", remote, target_branch])
+        if res.returncode != 0:
+            err = res.stderr.strip() or res.stdout.strip()
+            return {
+                "success": False,
+                "error": err,
+                "output": f"❌ [GitPulse] Pull failed: {err}",
+            }
+
+        formatted_output = f"📥 [GitPulse] New git pulled: successfully pulled updates from {remote}/{target_branch}!"
+        return {
+            "success": True,
+            "remote": remote,
+            "branch": target_branch,
+            "output": formatted_output,
+            "raw": res.stdout.strip(),
+        }

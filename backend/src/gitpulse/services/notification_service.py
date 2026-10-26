@@ -86,8 +86,11 @@ class NotificationService:
             return False
 
         commit_count = len(commits)
-        title = f"🚀 New Git Push: {repo_name}"
-        description = f"**{pusher}** pushed **{commit_count} commit(s)** to branch `{branch}`."
+        title = f"🚀 New Git Pushed: {repo_name}"
+        description = (
+            f"**New git pushed!** **{pusher}** committed and pushed "
+            f"**{commit_count} commit(s)** to branch `{branch}`."
+        )
 
         fields: list[dict[str, Any]] = [
             {
@@ -105,11 +108,11 @@ class NotificationService:
                 sha_short = str(c.get("id") or c.get("sha") or "")[:7]
                 msg = str(c.get("message") or "Commit update").split("\n")[0][:60]
                 url = c.get("url") or f"https://github.com/{repo_name}/commit/{sha_short}"
-                commit_lines.append(f"• [`{sha_short}`]({url}) {msg}")
+                commit_lines.append(f"• [`{sha_short}`]({url}) **committed**: {msg}")
             if len(commits) > 5:
                 commit_lines.append(f"...and {len(commits) - 5} more commit(s)")
             fields.append(
-                {"name": "📝 Recent Commits", "value": "\n".join(commit_lines), "inline": False}
+                {"name": "📝 Commits Committed", "value": "\n".join(commit_lines), "inline": False}
             )
 
         if compare_url:
@@ -125,6 +128,87 @@ class NotificationService:
             title=title,
             description=description,
             color=0x10B981,  # Emerald Green for push success
+            fields=fields,
+        )
+
+    async def notify_git_commit(
+        self,
+        repo_name: str,
+        author: str,
+        sha: str,
+        message: str,
+        branch: str = "main",
+        commit_url: str | None = None,
+    ) -> bool:
+        """Sends an automated rich Discord alert when a commit is registered."""
+        if not self.webhook_url:
+            return False
+
+        sha_short = sha[:7] if sha else "head"
+        url = commit_url or f"https://github.com/{repo_name}/commit/{sha_short}"
+        title = f"⚡ New Git Committed: {repo_name}"
+        description = f"**New git committed!** **{author}** committed to `{branch}`: **{message}**"
+
+        fields: list[dict[str, Any]] = [
+            {
+                "name": "📦 Repository",
+                "value": f"[{repo_name}](https://github.com/{repo_name})",
+                "inline": True,
+            },
+            {"name": "🌿 Branch", "value": f"`{branch}`", "inline": True},
+            {"name": "👤 Committer", "value": f"**{author}**", "inline": True},
+            {
+                "name": "📝 Commit Details",
+                "value": f"• [`{sha_short}`]({url}) **committed**: {message}",
+                "inline": False,
+            },
+        ]
+
+        return await self.send_discord_notification(
+            title=title,
+            description=description,
+            color=0x38BDF8,  # GitPulse Cyan
+            fields=fields,
+        )
+
+    async def notify_git_pull(
+        self,
+        repo_name: str,
+        actor: str,
+        action: str,
+        pr_number: int | str,
+        pr_title: str,
+        pr_url: str | None = None,
+    ) -> bool:
+        """Sends an automated rich Discord alert when a pull request is pulled / merged / updated."""
+        if not self.webhook_url:
+            return False
+
+        url = pr_url or f"https://github.com/{repo_name}/pull/{pr_number}"
+        title = f"📥 New Git Pulled | Pull Request {action.upper()}: {repo_name} #{pr_number}"
+        description = (
+            f"**New git pulled!** **{actor}** {action} pull request: **[{pr_title}]({url})**"
+        )
+
+        fields: list[dict[str, Any]] = [
+            {
+                "name": "📦 Repository",
+                "value": f"[{repo_name}](https://github.com/{repo_name})",
+                "inline": True,
+            },
+            {"name": "👤 Author", "value": f"**{actor}**", "inline": True},
+            {"name": "📋 Status", "value": f"`{action.upper()}`", "inline": True},
+            {
+                "name": "🔗 PR Link",
+                "value": f"[Open PR #{pr_number}]({url})",
+                "inline": False,
+            },
+        ]
+
+        return await self.send_discord_notification(
+            title=title,
+            description=description,
+            color=0x8B5CF6,  # Purple for PR / pull
             fields=fields,
         )
 
@@ -166,23 +250,24 @@ class NotificationService:
             pr_num = pr.get("number") or payload.get("number") or ""
             pr_title = pr.get("title") or "Pull Request"
             pr_url = pr.get("html_url") or f"https://github.com/{repo_name}/pull/{pr_num}"
-            return await self.send_discord_notification(
-                title=f"🔀 Pull Request {action.upper()}: {repo_name} #{pr_num}",
-                description=f"**{actor}** {action} pull request: **[{pr_title}]({pr_url})**",
-                color=0x8B5CF6,
-                fields=[
-                    {
-                        "name": "📦 Repository",
-                        "value": f"[{repo_name}](https://github.com/{repo_name})",
-                        "inline": True,
-                    },
-                    {"name": "👤 Author", "value": f"**{actor}**", "inline": True},
-                    {
-                        "name": "🔗 PR Link",
-                        "value": f"[Open PR #{pr_num}]({pr_url})",
-                        "inline": True,
-                    },
-                ],
+            return await self.notify_git_pull(
+                repo_name=repo_name,
+                actor=actor,
+                action=action,
+                pr_number=pr_num,
+                pr_title=pr_title,
+                pr_url=pr_url,
+            )
+
+        if ev_type in ("CommitCommentEvent", "CommitEvent"):
+            comment = payload.get("comment") or {}
+            sha = comment.get("commit_id") or payload.get("sha") or "head"
+            msg = comment.get("body") or payload.get("message") or "Commit note"
+            return await self.notify_git_commit(
+                repo_name=repo_name,
+                author=actor,
+                sha=sha,
+                message=msg,
             )
 
         if ev_type == "IssuesEvent":
@@ -290,9 +375,9 @@ def main():
         )
     )
     if success:
-        print("[GitPulse] Discord notification delivered successfully.")
+        print("[GitPulse] 🚀 New git pushed successfully! Discord notification delivered.")
     else:
-        print("[GitPulse] Discord notification skipped or failed (check DISCORD_WEBHOOK_URL).")
+        print("[GitPulse] ⚠️ Notification skipped or failed (check DISCORD_WEBHOOK_URL).")
 
 
 if __name__ == "__main__":

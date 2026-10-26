@@ -126,3 +126,38 @@ class UniversalPushNotificationResponse(BaseModel):
     status: str
     delivered: bool
     repository: str
+    message: str = "New git pushed"
+
+
+class UniversalPullNotificationRequest(BaseModel):
+    repo: str
+    actor: str = "developer"
+    action: str = "merged"
+    pr_number: int | str = 1
+    pr_title: str = "Pull Request"
+    pr_url: str | None = None
+    discord_webhook_url: str | None = None
+
+
+class UniversalPullNotificationResponse(BaseModel):
+    status: str
+    delivered: bool
+    repository: str
+    message: str = "New git pulled"
+
+
+class UniversalCommitNotificationRequest(BaseModel):
+    repo: str
+    author: str = "developer"
+    message: str = "Committed changes"
+    sha: str = "head"
+    branch: str = "main"
+    commit_url: str | None = None
+    discord_webhook_url: str | None = None
+
+
+class UniversalCommitNotificationResponse(BaseModel):
+    status: str
+    delivered: bool
+    repository: str
+    message: str = "New git committed"

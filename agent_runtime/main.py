@@ -14,6 +14,7 @@ from rich.table import Table
 from agent_runtime.master.graph import MasterGraphOrchestrator
 from agent_runtime.shared.permissions import AGENT_WRITE_PERMISSIONS
 from agent_runtime.shared.task_store import TaskStore
+from agent_runtime.tools.git_tools import GitTools
 from agent_runtime.tools.test_tools import TestTools
 
 console = Console()
@@ -166,6 +167,77 @@ def list_agents() -> None:
         table.add_row(agent_id, "\n".join(scopes))
 
     console.print(table)
+
+
+@cli.group()
+def git() -> None:
+    """GitPulse Version Control Tools with well-designed outputs."""
+    pass
+
+
+@git.command()
+@click.option("-m", "--message", required=True, help="Commit message")
+@click.option("-a", "--all", "stage_all", is_flag=True, help="Stage all changes before committing")
+def commit(message: str, stage_all: bool) -> None:
+    """Commit changes with well-designed output."""
+    tools = GitTools()
+    res = tools.commit(message=message, stage_all=stage_all)
+    if res["success"]:
+        console.print(
+            Panel(
+                f"[bold green]✨ New git committed![/bold green]\n\n"
+                f"[bold]Message:[/bold] {res['message']}\n"
+                f"[bold]Commit SHA:[/bold] [cyan]{res['sha']}[/cyan]",
+                title="[bold cyan]GitPulse Version Control[/bold cyan]",
+                border_style="green",
+            )
+        )
+    else:
+        console.print(f"[bold red]{res['output']}[/bold red]")
+
+
+@git.command()
+@click.option("-r", "--remote", default="origin", help="Remote repository")
+@click.option("-b", "--branch", default=None, help="Target branch (defaults to active branch)")
+def push(remote: str, branch: str | None) -> None:
+    """Push commits with well-designed output."""
+    tools = GitTools()
+    res = tools.push(remote=remote, branch=branch)
+    if res["success"]:
+        console.print(
+            Panel(
+                f"[bold green]🚀 New git pushed![/bold green]\n\n"
+                f"[bold]Remote:[/bold] [cyan]{res['remote']}[/cyan]\n"
+                f"[bold]Branch:[/bold] [yellow]{res['branch']}[/yellow]\n"
+                f"[bold]Status:[/bold] [bold green]Successfully synced to remote[/bold green]",
+                title="[bold cyan]GitPulse Version Control[/bold cyan]",
+                border_style="green",
+            )
+        )
+    else:
+        console.print(f"[bold red]{res['output']}[/bold red]")
+
+
+@git.command()
+@click.option("-r", "--remote", default="origin", help="Remote repository")
+@click.option("-b", "--branch", default=None, help="Target branch (defaults to active branch)")
+def pull(remote: str, branch: str | None) -> None:
+    """Pull commits with well-designed output."""
+    tools = GitTools()
+    res = tools.pull(remote=remote, branch=branch)
+    if res["success"]:
+        console.print(
+            Panel(
+                f"[bold cyan]📥 New git pulled![/bold cyan]\n\n"
+                f"[bold]Remote:[/bold] [cyan]{res['remote']}[/cyan]\n"
+                f"[bold]Branch:[/bold] [yellow]{res['branch']}[/yellow]\n"
+                f"[bold]Status:[/bold] [bold cyan]Successfully updated from remote[/bold cyan]",
+                title="[bold cyan]GitPulse Version Control[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+    else:
+        console.print(f"[bold red]{res['output']}[/bold red]")
 
 
 if __name__ == "__main__":

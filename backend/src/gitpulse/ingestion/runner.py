@@ -18,6 +18,45 @@ from backend.src.gitpulse.storage.database import AsyncSessionLocal, init_db
 from backend.src.gitpulse.storage.models import GitHubEvent, Repository
 
 
+def format_event_summary(ev_type: str, actor_login: str, payload: dict[str, Any]) -> str:
+    """Formats clean, well-designed activity summaries for Git events."""
+    if ev_type == "PushEvent":
+        commits = payload.get("commits") or []
+        count = len(commits) if isinstance(commits, list) else 1
+        ref = payload.get("ref") or "refs/heads/main"
+        branch = ref.replace("refs/heads/", "")
+        first_msg = ""
+        if isinstance(commits, list) and commits:
+            first_msg = str(commits[0].get("message") or "").split("\n")[0][:60]
+        suffix = f' — "{first_msg}"' if first_msg else ""
+        return f"New git pushed: {count} commit(s) committed to {branch} by {actor_login}{suffix}"
+
+    if ev_type == "PullRequestEvent":
+        action = payload.get("action") or "updated"
+        pr = payload.get("pull_request") or {}
+        num = pr.get("number") or payload.get("number") or ""
+        title = pr.get("title") or "Pull Request"
+        return f"New git pulled: PR #{num} ({action}) by {actor_login} — \"{title[:60]}\""
+
+    if ev_type in ("CommitCommentEvent", "CommitEvent"):
+        comment = payload.get("comment") or {}
+        msg = comment.get("body") or payload.get("message") or "Code change"
+        return f"New git committed: {actor_login} committed — \"{msg[:60]}\""
+
+    if ev_type == "IssuesEvent":
+        action = payload.get("action") or "updated"
+        issue = payload.get("issue") or {}
+        num = issue.get("number") or payload.get("number") or ""
+        title = issue.get("title") or "Issue"
+        return f"Issue #{num} ({action}) by {actor_login} — \"{title[:60]}\""
+
+    if ev_type == "WatchEvent":
+        return f"Starred repository by {actor_login}"
+
+    action = payload.get("action") if isinstance(payload, dict) else None
+    return f"{ev_type}: {action or 'event'} by {actor_login}"
+
+
 async def _persist_events_to_db(
     owner: str,
     repo_name: str,
@@ -86,7 +125,8 @@ async def _persist_events_to_db(
 
                     payload = event.get("payload") or {}
                     action = payload.get("action") if isinstance(payload, dict) else None
-                    summary_text = f"{event.get('type')}: {action or 'event'} by {actor_login}"
+                    ev_type = event.get("type", "UnknownEvent")
+                    summary_text = format_event_summary(ev_type, actor_login, payload if isinstance(payload, dict) else {})
 
                     db_event = GitHubEvent(
                         event_id=eid,
