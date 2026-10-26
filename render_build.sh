@@ -8,6 +8,9 @@ pip install --upgrade pip
 
 echo "==> Installing dependencies from requirements.txt..."
 pip install -r requirements.txt
+if [ -f backend/requirements.txt ]; then
+    pip install -r backend/requirements.txt
+fi
 
 echo "==> Installing package in editable mode..."
 pip install -e .

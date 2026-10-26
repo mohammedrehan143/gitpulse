@@ -10,12 +10,17 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.src.gitpulse.api.intelligence_routes import router as intelligence_router
 from backend.src.gitpulse.api.routes import router
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
 from backend.src.gitpulse.services.repository_service import RepositoryService
 from backend.src.gitpulse.storage.database import init_db
+
+try:
+    from backend.src.gitpulse.api.intelligence_routes import router as intelligence_router
+except ImportError as exc:
+    logger.warning("Data Science intelligence routes could not be imported: %s", exc)
+    intelligence_router = None
 
 
 async def _safe_cancel_task(task: asyncio.Task | None) -> None:
@@ -129,7 +134,8 @@ async def system_health():
 
 # Include API Routers
 app.include_router(router)
-app.include_router(intelligence_router)
+if intelligence_router is not None:
+    app.include_router(intelligence_router)
 
 
 def start() -> None:
