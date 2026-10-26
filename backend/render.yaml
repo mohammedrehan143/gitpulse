@@ -1,0 +1,35 @@
+services:
+  # ----------------------------------------------------------------------------
+  # Render Web Service: GitPulse FastAPI Backend (Direct backend/ deploy)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: gitpulse-backend
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "uvicorn --app-dir . main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PYTHONPATH
+        value: .
+      - key: GITPULSE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: GITHUB_API_BASE_URL
+        value: https://api.github.com
+      - key: GITHUB_RATE_LIMIT_BUFFER
+        value: 100
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./gitpulse.db
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: AUTO_DISCOVER_REPOSITORIES
+        value: "true"
+      - key: REPO_DISCOVERY_INTERVAL_MINUTES
+        value: "60"
+      - key: GITHUB_TARGET_REPOS
+        value: "apache/spark,fastapi/fastapi,facebook/react"
