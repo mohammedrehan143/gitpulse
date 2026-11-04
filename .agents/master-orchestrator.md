@@ -67,7 +67,7 @@ acceptance_criteria:
   - "Unit tests pass with >85% coverage"
 ```
 
-### Final Executive Report Format
+### Final Executive Report Format:
 ```markdown
 # GitPulse Epic Execution Report: [Epic Title]
 - **Status**: DONE
