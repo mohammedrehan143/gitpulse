@@ -61,3 +61,33 @@ CREATE TABLE IF NOT EXISTS developer_metrics (
 );
 
 CREATE INDEX idx_metrics_date ON developer_metrics(metric_date);
+
+CREATE TABLE IF NOT EXISTS repository_subscriptions (
+    id BIGSERIAL PRIMARY KEY,
+    repo_id BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    repo_github_id BIGINT NOT NULL,
+    user_id VARCHAR(100) NOT NULL,
+    webhook_url VARCHAR(500),
+    event_types JSONB DEFAULT '["push", "all"]'::jsonb,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_subscriptions_repo_active ON repository_subscriptions(repo_id, is_active);
+CREATE INDEX idx_subscriptions_user ON repository_subscriptions(user_id);
+CREATE INDEX idx_subscriptions_github_id ON repository_subscriptions(repo_github_id);
+
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id BIGSERIAL PRIMARY KEY,
+    delivery_id VARCHAR(128) UNIQUE NOT NULL,
+    event_type VARCHAR(64) NOT NULL,
+    repo_github_id BIGINT,
+    repo_full_name VARCHAR(200),
+    payload_hash VARCHAR(64) NOT NULL,
+    sender_login VARCHAR(100),
+    status VARCHAR(30) DEFAULT 'PROCESSED',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_deliveries_delivery_id ON webhook_deliveries(delivery_id);
+CREATE INDEX idx_deliveries_payload_hash ON webhook_deliveries(payload_hash);

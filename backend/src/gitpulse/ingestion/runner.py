@@ -16,7 +16,7 @@ from backend.src.gitpulse.ingestion.kafka_producer import KafkaEventProducer
 from backend.src.gitpulse.services.notification_service import NotificationService
 from backend.src.gitpulse.services.repository_service import RepositoryService
 from backend.src.gitpulse.storage.database import AsyncSessionLocal, init_db
-from backend.src.gitpulse.storage.models import GitHubEvent, Repository
+from backend.src.gitpulse.storage.models import CommitRecord, GitHubEvent, Repository
 
 
 def format_event_summary(ev_type: str, actor_login: str, payload: dict[str, Any]) -> str:
@@ -30,6 +30,8 @@ def format_event_summary(ev_type: str, actor_login: str, payload: dict[str, Any]
         if isinstance(commits, list) and commits:
             first_msg = str(commits[0].get("message") or "").split("\n")[0][:60]
         suffix = f' — "{first_msg}"' if first_msg else ""
+        if not commits:
+            return f"New git pushed: branch {branch} updated by {actor_login}"
         return f"New git pushed: {count} commit(s) committed to {branch} by {actor_login}{suffix}"
 
     if ev_type == "PullRequestEvent":
@@ -58,38 +60,104 @@ def format_event_summary(ev_type: str, actor_login: str, payload: dict[str, Any]
     return f"{ev_type}: {action or 'event'} by {actor_login}"
 
 
+async def _resolve_repo_record(
+    session: Any, owner: str, repo_name: str, full_name: str, repo_github_id: int | None, now: datetime
+) -> Repository:
+    repo = None
+    if repo_github_id:
+        stmt = select(Repository).where(Repository.github_id == repo_github_id)
+        res = await session.execute(stmt)
+        repo = res.scalar_one_or_none()
+
+    if not repo:
+        stmt = select(Repository).where(Repository.full_name == full_name)
+        res = await session.execute(stmt)
+        repo = res.scalar_one_or_none()
+        if repo and repo_github_id:
+            repo.github_id = repo_github_id
+
+    if not repo:
+        repo = Repository(
+            github_id=repo_github_id or (abs(hash(full_name)) % 10000000),
+            owner=owner,
+            name=repo_name,
+            full_name=full_name,
+            is_active=True,
+            monitoring_status="MONITORED",
+            last_synced_at=now,
+        )
+        session.add(repo)
+        await session.flush()
+    else:
+        repo.monitoring_status = "MONITORED"
+        repo.last_synced_at = now
+        repo.full_name = full_name
+    return repo
+
+
+async def _persist_commit_records(
+    session: Any, repo_id: int, commits: list[dict[str, Any]], actor_login: str, default_dt: datetime
+) -> None:
+    if not commits or not isinstance(commits, list):
+        return
+    c_shas = [str(c.get("id") or c.get("sha")) for c in commits if c.get("id") or c.get("sha")]
+    existing_shas: set[str] = set()
+    if c_shas:
+        shas_stmt = select(CommitRecord.sha).where(
+            CommitRecord.repo_id == repo_id,
+            CommitRecord.sha.in_(c_shas),
+        )
+        shas_res = await session.execute(shas_stmt)
+        existing_shas = set(shas_res.scalars().all())
+
+    for c in commits:
+        sha = str(c.get("id") or c.get("sha") or "")
+        if not sha or sha in existing_shas:
+            continue
+        c_author = c.get("author", {}) if isinstance(c.get("author"), dict) else {}
+        c_name = c_author.get("name") or c_author.get("username") or actor_login
+        c_email = c_author.get("email") or ""
+        c_msg = str(c.get("message") or "Commit update")[:1000]
+        c_dt = default_dt
+        if c.get("timestamp"):
+            try:
+                c_dt = datetime.fromisoformat(str(c["timestamp"]).replace("Z", "+00:00"))
+            except Exception:
+                pass
+        c_added = len(c.get("added", [])) * 20 if isinstance(c.get("added"), list) else 35
+        c_deleted = len(c.get("removed", [])) * 10 if isinstance(c.get("removed"), list) else 10
+        session.add(
+            CommitRecord(
+                sha=sha,
+                repo_id=repo_id,
+                author_name=c_name,
+                author_email=c_email,
+                message=c_msg,
+                lines_added=c_added,
+                lines_deleted=c_deleted,
+                committed_at=c_dt,
+            )
+        )
+        existing_shas.add(sha)
+
+
 async def _persist_events_to_db(
     owner: str,
     repo_name: str,
     events: list[dict],
+    repo_github_id: int | None = None,
 ) -> int:
-    """Persists raw GitHub events into the relational database (Supabase / SQLite)."""
+    """Persists raw GitHub events and commit records into relational database (Supabase / SQLite)."""
     full_name = f"{owner}/{repo_name}"
     saved_count = 0
+    now = datetime.now(UTC)
     try:
         await init_db()
         async with AsyncSessionLocal() as session:
             async with session.begin():
-                # Find or register repository record
-                stmt = select(Repository).where(Repository.full_name == full_name)
-                res = await session.execute(stmt)
-                repo = res.scalar_one_or_none()
-
-                if not repo:
-                    repo = Repository(
-                        github_id=abs(hash(full_name)) % 10000000,
-                        owner=owner,
-                        name=repo_name,
-                        full_name=full_name,
-                        is_active=True,
-                        monitoring_status="MONITORED",
-                        last_synced_at=datetime.now(UTC),
-                    )
-                    session.add(repo)
-                    await session.flush()
-                else:
-                    repo.monitoring_status = "MONITORED"
-                    repo.last_synced_at = datetime.now(UTC)
+                repo = await _resolve_repo_record(
+                    session, owner, repo_name, full_name, repo_github_id, now
+                )
 
                 # Fetch existing event_ids to prevent duplicates
                 event_ids = [str(e.get("id")) for e in events if e.get("id")]
@@ -115,7 +183,7 @@ async def _persist_events_to_db(
                     avatar_url = actor.get("avatar_url") if isinstance(actor, dict) else None
 
                     created_str = event.get("created_at")
-                    created_dt = datetime.now(UTC)
+                    created_dt = now
                     if created_str:
                         try:
                             created_dt = datetime.fromisoformat(
@@ -133,7 +201,7 @@ async def _persist_events_to_db(
 
                     db_event = GitHubEvent(
                         event_id=eid,
-                        event_type=event.get("type", "UnknownEvent"),
+                        event_type=ev_type,
                         repo_id=repo.id,
                         actor_login=actor_login,
                         actor_avatar_url=avatar_url,
@@ -144,6 +212,12 @@ async def _persist_events_to_db(
                     )
                     session.add(db_event)
                     saved_count += 1
+
+                    if ev_type == "PushEvent" and isinstance(payload, dict):
+                        commits = payload.get("commits") or []
+                        await _persist_commit_records(
+                            session, repo.id, commits, actor_login, created_dt
+                        )
 
                 await session.flush()
     except Exception as exc:

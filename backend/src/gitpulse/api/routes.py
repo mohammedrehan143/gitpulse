@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import hmac
 import json
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
@@ -33,6 +32,10 @@ from backend.src.gitpulse.api.schemas import (
     RefreshRepositoriesResponse,
     RepositoriesResponse,
     RepositoryRef,
+    RepoSubscribersResponse,
+    SubscribeRepoRequest,
+    SubscribeRepoResponse,
+    SubscriberItem,
     TimelinePoint,
     UniversalCommitNotificationRequest,
     UniversalCommitNotificationResponse,
@@ -40,6 +43,8 @@ from backend.src.gitpulse.api.schemas import (
     UniversalPullNotificationResponse,
     UniversalPushNotificationRequest,
     UniversalPushNotificationResponse,
+    UnsubscribeRepoRequest,
+    UnsubscribeRepoResponse,
     VelocityResponse,
     VelocitySummary,
 )
@@ -50,6 +55,8 @@ from backend.src.gitpulse.ingestion.runner import _persist_events_to_db
 from backend.src.gitpulse.services.ai_service import GroqAIService
 from backend.src.gitpulse.services.notification_service import NotificationService
 from backend.src.gitpulse.services.repository_service import RepositoryService
+from backend.src.gitpulse.services.subscription_service import subscription_service
+from backend.src.gitpulse.services.webhook_service import webhook_service
 from backend.src.gitpulse.storage.database import AsyncSessionLocal
 from backend.src.gitpulse.storage.models import GitHubEvent, Repository
 
@@ -475,79 +482,241 @@ async def handle_github_webhook(
     request: Request,
     x_hub_signature_256: str | None = Header(None),
 ) -> dict:
-    """Receives, verifies, and processes GitHub webhook payloads, notifying Discord and WebSocket."""
+    """Receives, verifies, and processes GitHub webhook payloads for all contributors idempotently."""
     payload_body = await request.body()
 
-    webhook_secret = (settings.GITHUB_WEBHOOK_SECRET or settings.GITHUB_TOKEN or "").encode("utf-8")
-    if webhook_secret and x_hub_signature_256:
-        expected = "sha256=" + hmac.new(webhook_secret, payload_body, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(expected, x_hub_signature_256):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid webhook signature",
-            )
+    # 1. Verify HMAC SHA-256 signature using GITHUB_WEBHOOK_SECRET (never GITHUB_TOKEN)
+    webhook_service.verify_signature(payload_body, x_hub_signature_256)
+
+    # 2. Extract delivery ID and check idempotency to prevent duplicate notifications
+    delivery_id = request.headers.get("X-GitHub-Delivery")
+    if delivery_id and await webhook_service.is_delivery_processed(delivery_id):
+        logger.info(
+            "Webhook delivery %s already processed. Skipping duplicate delivery.", delivery_id
+        )
+        return {
+            "status": "DUPLICATE_SKIPPED",
+            "delivery_id": delivery_id,
+            "bytes_received": len(payload_body),
+        }
+
+    # Fallback delivery ID for audit tracking if not provided in header
+    effective_delivery_id = (
+        delivery_id
+        or f"del_{int(datetime.now(UTC).timestamp())}_{hashlib.sha256(payload_body).hexdigest()[:12]}"
+    )
 
     try:
         parsed = json.loads(payload_body.decode("utf-8")) if payload_body else {}
-        event_name = request.headers.get("X-GitHub-Event", "push").lower()
-        repo_name = parsed.get("repository", {}).get("full_name", "general")
-        now_iso = datetime.now(UTC).isoformat()
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid JSON in webhook payload: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON payload",
+        ) from exc
 
-        # If it's a push event, send automated Discord alert from GitPulse
-        if event_name == "push":
-            pusher = (
-                parsed.get("pusher", {}).get("name")
-                or parsed.get("sender", {}).get("login")
-                or "developer"
-            )
-            ref = parsed.get("ref") or "refs/heads/main"
-            branch = ref.replace("refs/heads/", "")
-            commits = parsed.get("commits") or []
-            compare_url = parsed.get("compare")
+    event_name = request.headers.get("X-GitHub-Event", "push").lower()
+    repo_dict = parsed.get("repository", {}) if isinstance(parsed.get("repository"), dict) else {}
+    repo_github_id = repo_dict.get("id")
+    repo_name = repo_dict.get("full_name") or "general"
 
-            notifier = NotificationService()
-            await notifier.notify_git_push(
-                repo_name=repo_name,
-                pusher=pusher,
-                branch=branch,
-                commits=commits,
-                compare_url=compare_url,
-            )
+    # Distinguish repository owner
+    owner_info = repo_dict.get("owner", {}) if isinstance(repo_dict.get("owner"), dict) else {}
+    repo_owner = (
+        owner_info.get("login")
+        or owner_info.get("name")
+        or (repo_name.split("/")[0] if "/" in repo_name else "owner")
+    )
 
-            # Persist incoming push event & commits to database
-            if "/" in repo_name and commits:
-                owner_p, repo_p = repo_name.split("/", 1)
-                event_items = [
-                    {
-                        "id": str(c.get("id") or f"push_{int(datetime.now(UTC).timestamp())}_{i}"),
-                        "type": "PushEvent",
-                        "actor": {
-                            "login": pusher,
-                            "avatar_url": parsed.get("sender", {}).get("avatar_url"),
-                        },
-                        "payload": {"commits": commits, "action": "pushed"},
-                        "created_at": now_iso,
-                    }
-                    for i, c in enumerate(commits)
-                ]
-                await _persist_events_to_db(owner_p, repo_p, event_items)
+    # Distinguish pusher, sender, and author
+    pusher_dict = parsed.get("pusher", {}) if isinstance(parsed.get("pusher"), dict) else {}
+    pusher_name = pusher_dict.get("name") or "developer"
 
-        await ws_manager.broadcast(
-            repo_name,
-            {
-                "type": "event_stream",
-                "event": {
-                    "event_id": str(parsed.get("id", f"evt_{int(datetime.now(UTC).timestamp())}")),
-                    "event_type": request.headers.get("X-GitHub-Event", "PushEvent"),
-                    "actor": parsed.get("sender", {}).get("login", "unknown"),
-                    "timestamp": now_iso,
-                },
-            },
+    sender_dict = parsed.get("sender", {}) if isinstance(parsed.get("sender"), dict) else {}
+    sender_login = sender_dict.get("login") or pusher_name
+    sender_avatar = sender_dict.get("avatar_url")
+
+    now_iso = datetime.now(UTC).isoformat()
+
+    if event_name == "push":
+        ref = parsed.get("ref") or "refs/heads/main"
+        branch = ref.replace("refs/heads/", "")
+        commits = parsed.get("commits") or []
+        compare_url = parsed.get("compare")
+
+        # Head commit SHA or delivery ID for immutable event identification
+        head_commit_id = (
+            parsed.get("after")
+            or (parsed.get("head_commit") or {}).get("id")
+            or (commits[-1].get("id") if commits else None)
+            or f"push_{effective_delivery_id}"
         )
-    except Exception as exc:
-        logger.warning("Error processing webhook payload: %s", exc)
+        push_event_id = str(head_commit_id)
 
-    return {"status": "ACCEPTED", "bytes_received": len(payload_body)}
+        # 3. Persist incoming push event & commits to database (even if commits is empty, e.g. branch push)
+        if "/" in repo_name:
+            owner_p, repo_p = repo_name.split("/", 1)
+        else:
+            owner_p, repo_p = repo_owner, repo_name
+
+        first_msg = (commits[0].get("message") or "").split("\n")[0][:60] if commits else ""
+        suffix = f' — "{first_msg}"' if first_msg else ""
+        summary_text = (
+            f"New git pushed: {len(commits)} commit(s) committed to {branch} by {sender_login}{suffix}"
+            if commits
+            else f"New git pushed: branch {branch} updated by {sender_login}"
+        )
+
+        event_items = [
+            {
+                "id": push_event_id,
+                "type": "PushEvent",
+                "actor": {
+                    "login": sender_login,
+                    "avatar_url": sender_avatar,
+                },
+                "payload": {
+                    "ref": ref,
+                    "commits": commits,
+                    "action": "pushed",
+                    "pusher": pusher_name,
+                    "sender": sender_login,
+                    "compare": compare_url,
+                    "repository": repo_dict,
+                },
+                "created_at": now_iso,
+            }
+        ]
+        await _persist_events_to_db(owner_p, repo_p, event_items, repo_github_id=repo_github_id)
+
+        # 4. Fetch all active repository subscribers and notify all eligible recipients
+        subscribers = await subscription_service.get_subscribers_for_repo(
+            repo_github_id=repo_github_id,
+            full_name=repo_name,
+            event_type="push",
+        )
+        destinations = [s["webhook_url"] for s in subscribers if s.get("webhook_url")]
+
+        notifier = NotificationService()
+        await notifier.notify_git_push(
+            repo_name=repo_name,
+            pusher=pusher_name,
+            branch=branch,
+            commits=commits,
+            compare_url=compare_url,
+            sender=sender_login,
+            repo_owner=repo_owner,
+            repo_github_id=repo_github_id,
+            destinations=destinations,
+        )
+
+        # 5. Broadcast complete EventItem over WebSocket to dashboard clients
+        ws_event = {
+            "type": "event_stream",
+            "event": {
+                "event_id": push_event_id,
+                "event_type": "PushEvent",
+                "actor": sender_login,
+                "actor_avatar_url": sender_avatar,
+                "action": "pushed",
+                "payload_summary": summary_text,
+                "created_at": now_iso,
+            },
+        }
+        await ws_manager.broadcast(repo_name, ws_event)
+        if repo_github_id:
+            await ws_manager.broadcast(str(repo_github_id), ws_event)
+
+    # 6. Record processed delivery to ensure idempotency on future retries
+    await webhook_service.record_delivery(
+        delivery_id=effective_delivery_id,
+        event_type=event_name,
+        repo_github_id=repo_github_id,
+        repo_full_name=repo_name,
+        payload_bytes=payload_body,
+        sender_login=sender_login,
+    )
+
+    return {
+        "status": "ACCEPTED",
+        "delivery_id": effective_delivery_id,
+        "bytes_received": len(payload_body),
+    }
+
+
+@router.get("/repos/{owner}/{repo}/subscribers", response_model=RepoSubscribersResponse)
+async def list_repo_subscribers(owner: str, repo: str) -> RepoSubscribersResponse:
+    """Lists all subscribers registered for notifications on a repository."""
+    full_name = f"{owner}/{repo}"
+    subs = await subscription_service.list_subscribers_for_repo(full_name=full_name)
+    items = [
+        SubscriberItem(
+            id=s["id"],
+            user_id=s["user_id"],
+            webhook_url=s.get("webhook_url"),
+            repo_id=s.get("repo_id") or 0,
+            repo_github_id=s.get("repo_github_id") or 0,
+            is_active=s.get("is_active", True),
+            event_types=s.get("event_types", ["push", "all"]),
+        )
+        for s in subs
+    ]
+    repo_gid = subs[0]["repo_github_id"] if subs else None
+    return RepoSubscribersResponse(
+        repository=full_name,
+        repo_github_id=repo_gid,
+        subscribers_count=len(items),
+        subscribers=items,
+    )
+
+
+@router.post("/repos/{owner}/{repo}/subscribe", response_model=SubscribeRepoResponse)
+async def subscribe_to_repo(
+    owner: str,
+    repo: str,
+    payload: SubscribeRepoRequest,
+) -> SubscribeRepoResponse:
+    """Subscribes a user or channel to activity alerts for a repository."""
+    full_name = f"{owner}/{repo}"
+    repo_service = RepositoryService()
+    tracked = await repo_service.ensure_repository_tracked(owner, repo)
+    repo_github_id = tracked.get("github_id") or tracked.get("id") or 0
+
+    sub = await subscription_service.subscribe_user(
+        repo_github_id=repo_github_id,
+        user_id=payload.user_id,
+        repo_id=tracked.get("id"),
+        webhook_url=payload.webhook_url,
+        event_types=payload.event_types,
+    )
+    return SubscribeRepoResponse(
+        status="SUBSCRIBED",
+        repository=full_name,
+        subscription=SubscriberItem(**sub),
+    )
+
+
+@router.post("/repos/{owner}/{repo}/unsubscribe", response_model=UnsubscribeRepoResponse)
+async def unsubscribe_from_repo(
+    owner: str,
+    repo: str,
+    payload: UnsubscribeRepoRequest,
+) -> UnsubscribeRepoResponse:
+    """Unsubscribes a user from activity alerts for a repository."""
+    full_name = f"{owner}/{repo}"
+    repo_service = RepositoryService()
+    tracked = await repo_service.ensure_repository_tracked(owner, repo)
+    repo_github_id = tracked.get("github_id") or tracked.get("id") or 0
+
+    unsub = await subscription_service.unsubscribe_user(
+        repo_github_id=repo_github_id,
+        user_id=payload.user_id,
+    )
+    return UnsubscribeRepoResponse(
+        status="UNSUBSCRIBED" if unsub else "NOT_FOUND",
+        repository=full_name,
+        unsubscribed=unsub,
+    )
 
 
 @router.post("/notify/push", response_model=UniversalPushNotificationResponse)

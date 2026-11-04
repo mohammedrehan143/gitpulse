@@ -174,3 +174,42 @@ class UniversalCommitNotificationResponse(BaseModel):
     delivered: bool
     repository: str
     message: str = "New git committed"
+
+
+class SubscriberItem(BaseModel):
+    id: int
+    user_id: str
+    webhook_url: str | None = None
+    repo_id: int
+    repo_github_id: int
+    is_active: bool
+    event_types: list[str] = Field(default_factory=lambda: ["push", "all"])
+
+
+class RepoSubscribersResponse(BaseModel):
+    repository: str
+    repo_github_id: int | None = None
+    subscribers_count: int
+    subscribers: list[SubscriberItem]
+
+
+class SubscribeRepoRequest(BaseModel):
+    user_id: str
+    webhook_url: str | None = None
+    event_types: list[str] = Field(default_factory=lambda: ["push", "all"])
+
+
+class SubscribeRepoResponse(BaseModel):
+    status: str
+    repository: str
+    subscription: SubscriberItem
+
+
+class UnsubscribeRepoRequest(BaseModel):
+    user_id: str
+
+
+class UnsubscribeRepoResponse(BaseModel):
+    status: str
+    repository: str
+    unsubscribed: bool

@@ -14,6 +14,95 @@ from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
 
 
+def _format_commit_lines(
+    commits: list[dict[str, Any]], repo_name: str, actor_display: str
+) -> list[str]:
+    lines = []
+    for c in commits[:5]:
+        sha_short = str(c.get("id") or c.get("sha") or "")[:7]
+        msg = str(c.get("message") or "Commit update").split("\n")[0][:60]
+        url = c.get("url") or f"https://github.com/{repo_name}/commit/{sha_short}"
+        c_auth = c.get("author", {}) if isinstance(c.get("author"), dict) else {}
+        c_author = c_auth.get("name") or c_auth.get("username")
+        auth_tag = f" by **{c_author}**" if c_author and c_author != actor_display else ""
+        lines.append(f"• [`{sha_short}`]({url}){auth_tag}: {msg}")
+    if len(commits) > 5:
+        lines.append(f"...and {len(commits) - 5} more commit(s)")
+    return lines
+
+
+def _build_git_push_fields(
+    repo_name: str,
+    pusher: str,
+    branch: str,
+    commits: list[dict[str, Any]],
+    compare_url: str | None,
+    sender: str | None,
+    repo_owner: str | None,
+) -> tuple[str, str, list[dict[str, Any]]]:
+    commit_count = len(commits)
+    title = f"🚀 New Git Pushed: {repo_name}"
+    actor_display = sender or pusher or "developer"
+
+    if repo_owner and actor_display != repo_owner:
+        desc = (
+            f"**New git pushed!** Collaborator **{actor_display}** pushed "
+            f"**{commit_count} commit(s)** to branch `{branch}`."
+        )
+    elif repo_owner and actor_display == repo_owner:
+        desc = (
+            f"**New git pushed!** Repository owner **{repo_owner}** pushed "
+            f"**{commit_count} commit(s)** to branch `{branch}`."
+        )
+    else:
+        desc = (
+            f"**New git pushed!** **{actor_display}** committed and pushed "
+            f"**{commit_count} commit(s)** to branch `{branch}`."
+        )
+
+    repo_val = f"[{repo_name}](https://github.com/{repo_name})"
+    if repo_owner:
+        repo_val += f" • Owner: **{repo_owner}**"
+
+    pusher_disp = (
+        f"**{sender}** (pushed by `{pusher}`)"
+        if sender and pusher and sender != pusher
+        else f"**{actor_display}**"
+    )
+
+    fields: list[dict[str, Any]] = [
+        {"name": "📦 Repository", "value": repo_val, "inline": True},
+        {"name": "🌿 Branch", "value": f"`{branch}`", "inline": True},
+        {"name": "👤 Pusher", "value": pusher_disp, "inline": True},
+    ]
+
+    authors: list[str] = []
+    if commits:
+        for c in commits:
+            c_auth = c.get("author", {}) if isinstance(c.get("author"), dict) else {}
+            a_name = c_auth.get("username") or c_auth.get("name")
+            if a_name and a_name not in authors:
+                authors.append(a_name)
+
+    if authors:
+        fields.append(
+            {
+                "name": "👥 Commit Author(s)",
+                "value": ", ".join(f"**{a}**" for a in authors),
+                "inline": True,
+            }
+        )
+
+    if commits:
+        c_lines = _format_commit_lines(commits, repo_name, actor_display)
+        fields.append({"name": "📝 Commits Committed", "value": "\n".join(c_lines), "inline": False})
+
+    if compare_url:
+        fields.append({"name": "🔍 Compare Changes", "value": f"[View Full Diff]({compare_url})", "inline": False})
+
+    return title, desc, fields
+
+
 class NotificationService:
     """Dispatches event alerts and metrics digests to external channels."""
 
@@ -30,9 +119,11 @@ class NotificationService:
         description: str,
         color: int = 0x38BDF8,  # GitPulse Cyan
         fields: list[dict[str, Any]] | None = None,
+        webhook_url: str | None = None,
     ) -> bool:
         """Sends rich embed notification to configured Discord webhook."""
-        if not self.webhook_url:
+        target_url = webhook_url or self.webhook_url
+        if not target_url:
             logger.debug("Discord webhook URL not configured. Skipping alert.")
             return False
 
@@ -54,10 +145,11 @@ class NotificationService:
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
-                resp = await client.post(self.webhook_url, json=payload)
+                resp = await client.post(target_url, json=payload)
                 if resp.status_code in (200, 204):
                     logger.info(
-                        "Discord notification sent successfully: %s",
+                        "Discord notification sent successfully to %s: %s",
+                        target_url.split("/")[-1][:12],
                         title.encode("ascii", "ignore").decode(),
                     )
                     return True
@@ -79,57 +171,55 @@ class NotificationService:
         branch: str,
         commits: list[dict[str, Any]],
         compare_url: str | None = None,
+        sender: str | None = None,
+        repo_owner: str | None = None,
+        repo_github_id: int | None = None,
+        destinations: list[str] | None = None,
     ) -> bool:
         """Sends an automated rich Discord alert when a new git push is received."""
-        if not self.webhook_url:
+        target_urls = set()
+        if destinations:
+            for d in destinations:
+                if d and d.strip():
+                    target_urls.add(d.strip())
+        if not target_urls and self.webhook_url:
+            target_urls.add(self.webhook_url)
+
+        if not target_urls:
             logger.debug("Discord webhook URL not configured. Skipping git push alert.")
             return False
 
-        commit_count = len(commits)
-        title = f"🚀 New Git Pushed: {repo_name}"
-        description = (
-            f"**New git pushed!** **{pusher}** committed and pushed "
-            f"**{commit_count} commit(s)** to branch `{branch}`."
+        title, description, fields = _build_git_push_fields(
+            repo_name=repo_name,
+            pusher=pusher,
+            branch=branch,
+            commits=commits,
+            compare_url=compare_url,
+            sender=sender,
+            repo_owner=repo_owner,
         )
 
-        fields: list[dict[str, Any]] = [
-            {
-                "name": "📦 Repository",
-                "value": f"[{repo_name}](https://github.com/{repo_name})",
-                "inline": True,
-            },
-            {"name": "🌿 Branch", "value": f"`{branch}`", "inline": True},
-            {"name": "👤 Pusher", "value": f"**{pusher}**", "inline": True},
-        ]
+        delivered_any = False
+        for url in target_urls:
+            if url == self.webhook_url:
+                ok = await self.send_discord_notification(
+                    title=title,
+                    description=description,
+                    color=0x10B981,
+                    fields=fields,
+                )
+            else:
+                ok = await self.send_discord_notification(
+                    title=title,
+                    description=description,
+                    color=0x10B981,
+                    fields=fields,
+                    webhook_url=url,
+                )
+            if ok:
+                delivered_any = True
 
-        if commits:
-            commit_lines = []
-            for c in commits[:5]:
-                sha_short = str(c.get("id") or c.get("sha") or "")[:7]
-                msg = str(c.get("message") or "Commit update").split("\n")[0][:60]
-                url = c.get("url") or f"https://github.com/{repo_name}/commit/{sha_short}"
-                commit_lines.append(f"• [`{sha_short}`]({url}) **committed**: {msg}")
-            if len(commits) > 5:
-                commit_lines.append(f"...and {len(commits) - 5} more commit(s)")
-            fields.append(
-                {"name": "📝 Commits Committed", "value": "\n".join(commit_lines), "inline": False}
-            )
-
-        if compare_url:
-            fields.append(
-                {
-                    "name": "🔍 Compare Changes",
-                    "value": f"[View Full Diff]({compare_url})",
-                    "inline": False,
-                }
-            )
-
-        return await self.send_discord_notification(
-            title=title,
-            description=description,
-            color=0x10B981,  # Emerald Green for push success
-            fields=fields,
-        )
+        return delivered_any
 
     async def notify_git_commit(
         self,
@@ -236,12 +326,15 @@ class NotificationService:
             branch = ref.replace("refs/heads/", "")
             head = payload.get("head") or ""
             compare_url = f"https://github.com/{repo_name}/commit/{head}" if head else None
+            repo_owner = repo_name.split("/")[0] if "/" in repo_name else None
             return await self.notify_git_push(
                 repo_name=repo_name,
                 pusher=actor,
+                sender=actor,
                 branch=branch,
                 commits=commits,
                 compare_url=compare_url,
+                repo_owner=repo_owner,
             )
 
         if ev_type == "PullRequestEvent":

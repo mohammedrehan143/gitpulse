@@ -43,6 +43,9 @@ class Repository(Base):
         "PullRequestRecord", back_populates="repository"
     )
     issues: Mapped[list[IssueRecord]] = relationship("IssueRecord", back_populates="repository")
+    subscriptions: Mapped[list[RepositorySubscription]] = relationship(
+        "RepositorySubscription", back_populates="repository", cascade="all, delete-orphan"
+    )
 
 
 class GitHubEvent(Base):
@@ -193,3 +196,42 @@ class PipelineRun(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RepositorySubscription(Base):
+    __tablename__ = "repository_subscriptions"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
+    repo_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("repositories.id", ondelete="CASCADE"), index=True
+    )
+    repo_github_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    user_id: Mapped[str] = mapped_column(String(100), index=True)
+    webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    event_types: Mapped[list[str]] = mapped_column(JSON, default=lambda: ["push", "all"])
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+    repository: Mapped[Repository] = relationship("Repository", back_populates="subscriptions")
+
+
+class WebhookDelivery(Base):
+    __tablename__ = "webhook_deliveries"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
+    delivery_id: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(64), index=True)
+    repo_github_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    repo_full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    payload_hash: Mapped[str] = mapped_column(String(64), index=True)
+    sender_login: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="PROCESSED")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
+    )
