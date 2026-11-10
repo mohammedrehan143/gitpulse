@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -19,6 +20,7 @@ from fastapi import (
     status,
 )
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.src.gitpulse.api.schemas import (
     AIGenerateRequest,
@@ -63,7 +65,7 @@ from backend.src.gitpulse.common.logging import logger
 from backend.src.gitpulse.ingestion.github_client import GitHubClient
 from backend.src.gitpulse.ingestion.pipeline import DataIngestionPipeline
 from backend.src.gitpulse.ingestion.runner import _persist_events_to_db
-from backend.src.gitpulse.services.ai_service import GroqAIService
+from backend.src.gitpulse.services.ai_service import AIServiceException, GroqAIService
 from backend.src.gitpulse.services.notification_service import NotificationService
 from backend.src.gitpulse.services.reconciliation_service import DataReconciliationService
 from backend.src.gitpulse.services.repository_service import RepositoryService
@@ -169,31 +171,127 @@ async def refresh_repositories() -> RefreshRepositoriesResponse:
     )
 
 
+def _normalize_utc_dt(dt: datetime | None) -> datetime | None:
+    """Normalizes any datetime (offset-naive or offset-aware) to UTC timezone-aware datetime."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+
 @router.post("/ai/generate", response_model=AIGenerateResponse)
 async def ai_generate(request: AIGenerateRequest) -> AIGenerateResponse:
     """Direct invocation of Groq LLM inference for velocity or architecture tasks."""
-    service = GroqAIService()
-    response_text = service.generate_completion(
-        prompt=request.prompt,
-        system_prompt=request.system_prompt,
-    )
+    service = GroqAIService(model=request.model)
+    try:
+        response_text = service.generate_completion(
+            prompt=request.prompt,
+            system_prompt=request.system_prompt,
+        )
+    except AIServiceException as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     return AIGenerateResponse(
         model=request.model or service.model,
         response=response_text,
     )
 
 
-@router.post("/repos/{owner}/{repo}/ai-insights", response_model=AIInsightsResponse)
-async def get_repository_ai_insights(owner: str, repo: str) -> AIInsightsResponse:
-    """Produces AI velocity and architecture insights for a repository using Groq."""
-    velocity_data = await get_repository_velocity(
-        owner=owner,
-        repo=repo,
-        timeframe="30d",
-        granularity="day",
-    )
-    service = GroqAIService()
-    summary_dict = {
+async def _verify_repository_exists_for_ai(
+    owner: str,
+    repo: str,
+    full_name: str,
+    correlation_id: str,
+) -> None:
+    """Ensures repository exists in DB or can be discovered on GitHub before AI analysis."""
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = select(Repository).where(Repository.full_name == full_name)
+            res = await session.execute(stmt)
+            repo_obj = res.scalar_one_or_none()
+
+        if not repo_obj:
+            repo_service = RepositoryService()
+            meta = await repo_service.client.fetch_repository_metadata(owner, repo)
+            if not meta:
+                logger.warning(
+                    "[%s] Repository %s not found in database or GitHub", correlation_id, full_name
+                )
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Repository '{full_name}' not found",
+                    headers={"X-Correlation-ID": correlation_id},
+                )
+            await repo_service.ensure_repository_tracked(owner, repo)
+    except HTTPException:
+        raise
+    except (SQLAlchemyError, ConnectionError, OSError) as db_exc:
+        logger.error(
+            "[%s] Database error verifying repository %s: %s", correlation_id, full_name, db_exc
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Database service temporarily unavailable. Please retry shortly.",
+            headers={"X-Correlation-ID": correlation_id},
+        ) from db_exc
+    except Exception as exc:
+        logger.error(
+            "[%s] Unexpected error verifying repository %s: %s",
+            correlation_id,
+            full_name,
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected internal error occurred (ID: {correlation_id})",
+            headers={"X-Correlation-ID": correlation_id},
+        ) from exc
+
+
+async def _retrieve_velocity_summary(
+    owner: str,
+    repo: str,
+    full_name: str,
+    correlation_id: str,
+) -> dict[str, Any]:
+    """Retrieves 30-day velocity metrics dictionary with error handling."""
+    try:
+        velocity_data = await get_repository_velocity(
+            owner=owner,
+            repo=repo,
+            timeframe="30d",
+            granularity="day",
+        )
+    except HTTPException:
+        raise
+    except SQLAlchemyError as db_exc:
+        logger.error(
+            "[%s] Database query failure fetching velocity for %s: %s",
+            correlation_id,
+            full_name,
+            db_exc,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Database query failed while calculating repository velocity metrics.",
+            headers={"X-Correlation-ID": correlation_id},
+        ) from db_exc
+    except Exception as exc:
+        logger.error(
+            "[%s] Failed to calculate velocity for %s: %s",
+            correlation_id,
+            full_name,
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected internal error occurred while calculating repository metrics (ID: {correlation_id})",
+            headers={"X-Correlation-ID": correlation_id},
+        ) from exc
+
+    return {
         "total_commits": velocity_data.summary.total_commits,
         "active_contributors": velocity_data.summary.active_contributors,
         "avg_pr_cycle_time_hours": velocity_data.summary.avg_pr_cycle_time_hours,
@@ -201,12 +299,67 @@ async def get_repository_ai_insights(owner: str, repo: str) -> AIInsightsRespons
         "lines_added": velocity_data.summary.lines_added,
         "lines_deleted": velocity_data.summary.lines_deleted,
     }
-    insights = service.analyze_repository_metrics(
-        repo_full_name=f"{owner}/{repo}",
-        metrics=summary_dict,
-    )
+
+
+def _generate_ai_velocity_insights(
+    service: GroqAIService,
+    full_name: str,
+    summary_dict: dict[str, Any],
+    correlation_id: str,
+) -> str:
+    """Executes Groq AI metrics analysis with typed exception handling."""
+    try:
+        return service.analyze_repository_metrics(
+            repo_full_name=full_name,
+            metrics=summary_dict,
+        )
+    except AIServiceException as ai_exc:
+        logger.error(
+            "[%s] AI service error for %s: [%s] %s",
+            correlation_id,
+            full_name,
+            ai_exc.category,
+            ai_exc.message,
+        )
+        raise HTTPException(
+            status_code=ai_exc.status_code,
+            detail=f"{ai_exc.message} (ID: {correlation_id})",
+            headers={"X-Correlation-ID": correlation_id},
+        ) from ai_exc
+    except Exception as exc:
+        logger.error(
+            "[%s] Unexpected exception during AI analysis for %s: %s",
+            correlation_id,
+            full_name,
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected internal error occurred during AI analysis (ID: {correlation_id})",
+            headers={"X-Correlation-ID": correlation_id},
+        ) from exc
+
+
+@router.post("/repos/{owner}/{repo}/ai-insights", response_model=AIInsightsResponse)
+async def get_repository_ai_insights(
+    owner: str,
+    repo: str,
+    request: Request,
+) -> AIInsightsResponse:
+    """Produces AI velocity and architecture insights for a repository using Groq."""
+    correlation_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    full_name = f"{owner}/{repo}"
+    logger.info("[%s] Generating AI insights for repository: %s", correlation_id, full_name)
+
+    await _verify_repository_exists_for_ai(owner, repo, full_name, correlation_id)
+    summary_dict = await _retrieve_velocity_summary(owner, repo, full_name, correlation_id)
+
+    service = GroqAIService()
+    insights = _generate_ai_velocity_insights(service, full_name, summary_dict, correlation_id)
+
     return AIInsightsResponse(
-        repository=f"{owner}/{repo}",
+        repository=full_name,
         model=service.model,
         insights=insights,
     )
@@ -268,8 +421,9 @@ async def _fetch_and_aggregate_commits(
 
     total_added, total_deleted = 0, 0
     for c in commits:
-        if c.committed_at:
-            c_day = c.committed_at.strftime("%Y-%m-%d")
+        c_utc = _normalize_utc_dt(c.committed_at)
+        if c_utc:
+            c_day = c_utc.strftime("%Y-%m-%d")
             daily_commits[c_day] += 1
             daily_lines[c_day] += c.lines_added
             total_added += c.lines_added
@@ -303,17 +457,20 @@ async def _fetch_and_aggregate_prs(
             logger.debug("Initial PR backfill skipped: %s", exc)
 
     cycle_times: list[float] = []
+    cutoff_utc = _normalize_utc_dt(cutoff) or cutoff
     for pr in prs:
-        if pr.created_at:
-            p_day = pr.created_at.strftime("%Y-%m-%d")
+        created_utc = _normalize_utc_dt(pr.created_at)
+        merged_utc = _normalize_utc_dt(pr.merged_at)
+        if created_utc:
+            p_day = created_utc.strftime("%Y-%m-%d")
             daily_prs_opened[p_day] += 1
             if pr.author_login:
                 daily_authors[p_day].add(pr.author_login)
-        if pr.merged_at and pr.merged_at >= cutoff:
-            m_day = pr.merged_at.strftime("%Y-%m-%d")
+        if merged_utc and merged_utc >= cutoff_utc:
+            m_day = merged_utc.strftime("%Y-%m-%d")
             daily_prs_merged[m_day] += 1
-            if pr.created_at:
-                hrs = (pr.merged_at - pr.created_at).total_seconds() / 3600.0
+            if created_utc:
+                hrs = (merged_utc - created_utc).total_seconds() / 3600.0
                 if 0 < hrs < 720:
                     cycle_times.append(hrs)
     return cycle_times
@@ -372,8 +529,9 @@ async def get_repository_velocity(
             )
             events = list((await session.execute(evt_stmt)).scalars().all())
             for e in events:
-                if e.created_at and e.actor_login:
-                    e_day = e.created_at.strftime("%Y-%m-%d")
+                e_utc = _normalize_utc_dt(e.created_at)
+                if e_utc and e.actor_login:
+                    e_day = e_utc.strftime("%Y-%m-%d")
                     daily_authors[e_day].add(e.actor_login)
 
     timeline_points = _generate_timeline_buckets(

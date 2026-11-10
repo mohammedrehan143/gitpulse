@@ -127,6 +127,54 @@ describe('GitPulse Frontend Application & API Services', () => {
     expect(res.insights).toContain('Velocity optimal');
   });
 
+  it('handles HTTP 500 server error when generating AI insights with parsed detail message', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: async () => ({
+        detail: 'An unexpected internal error occurred during AI analysis (ID: err-1234)',
+      }),
+    });
+    global.fetch = mockFetch;
+
+    await expect(fetchAIInsights('test-org', 'test-repo')).rejects.toThrow(
+      'AI Insights failed (500): An unexpected internal error occurred during AI analysis (ID: err-1234)'
+    );
+  });
+
+  it('handles HTTP 503 configuration error when GROQ_API_KEY is missing', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+      json: async () => ({
+        detail: 'GROQ_API_KEY is not configured in backend environment or settings (ID: conf-5678)',
+      }),
+    });
+    global.fetch = mockFetch;
+
+    await expect(fetchAIInsights('test-org', 'test-repo')).rejects.toThrow(
+      'AI Insights failed (503): GROQ_API_KEY is not configured in backend environment or settings'
+    );
+  });
+
+  it('handles HTTP 404 error when repository is not found', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: async () => ({
+        detail: "Repository 'ghost-org/nonexistent' not found",
+      }),
+    });
+    global.fetch = mockFetch;
+
+    await expect(fetchAIInsights('ghost-org', 'nonexistent')).rejects.toThrow(
+      "AI Insights failed (404): Repository 'ghost-org/nonexistent' not found"
+    );
+  });
+
   it('resolves default API base and WebSocket URLs correctly', () => {
     const apiBase = getApiBaseUrl();
     expect(apiBase).toBe('/api/v1');

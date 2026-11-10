@@ -115,7 +115,18 @@ export async function fetchAIInsights(
   const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/ai-insights`;
   const res = await fetch(url, { method: 'POST' });
   if (!res.ok) {
-    throw new Error(`Failed to generate AI insights: ${res.statusText}`);
+    let errorDetail = res.statusText;
+    try {
+      const errorBody = await res.json();
+      if (typeof errorBody.detail === 'string') {
+        errorDetail = errorBody.detail;
+      } else if (errorBody.detail?.message) {
+        errorDetail = errorBody.detail.message;
+      }
+    } catch {
+      // Fallback to statusText if body is unparseable
+    }
+    throw new Error(`AI Insights failed (${res.status}): ${errorDetail}`);
   }
   return res.json();
 }

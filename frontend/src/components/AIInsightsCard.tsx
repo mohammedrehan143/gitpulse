@@ -287,10 +287,29 @@ export const AIInsightsCard: React.FC<AIInsightsCardProps> = ({
             fontSize: '0.85rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
           }}
         >
           <span>Error generating insights: {error}</span>
+          <button
+            onClick={onGenerate}
+            disabled={loading}
+            aria-label="Retry generating insights"
+            style={{
+              padding: '0.35rem 0.75rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              backgroundColor: '#dc2626',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            Retry
+          </button>
         </div>
       )}
 
