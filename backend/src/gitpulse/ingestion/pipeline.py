@@ -586,15 +586,18 @@ class DataIngestionPipeline:
                 existing_shas = set()
                 if shas:
                     stmt = select(CommitRecord.sha).where(
-                        CommitRecord.repo_id == repo.id,
                         CommitRecord.sha.in_(shas),
                     )
                     res = await session.execute(stmt)
                     existing_shas = set(res.scalars().all())
 
-                new_commits = [
-                    c for c in raw_commits if str(c.get("sha") or "") not in existing_shas
-                ]
+                new_commits = []
+                seen_shas = set(existing_shas)
+                for c in raw_commits:
+                    c_sha = str(c.get("sha") or "")
+                    if c_sha and c_sha not in seen_shas:
+                        seen_shas.add(c_sha)
+                        new_commits.append(c)
 
                 for idx, c in enumerate(new_commits):
                     try:
