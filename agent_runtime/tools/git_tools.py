@@ -79,7 +79,7 @@ class GitTools:
 
         sha_res = self._run_git(["rev-parse", "--short", "HEAD"])
         sha = sha_res.stdout.strip() if sha_res.returncode == 0 else "head"
-        formatted_output = f"✨ [GitPulse] New git committed: \"{message}\" (SHA: {sha})"
+        formatted_output = f'✨ [GitPulse] New git committed: "{message}" (SHA: {sha})'
         return {
             "success": True,
             "sha": sha,
@@ -100,7 +100,9 @@ class GitTools:
                 "output": f"❌ [GitPulse] Push failed: {err}",
             }
 
-        formatted_output = f"🚀 [GitPulse] New git pushed: successfully pushed to {remote}/{target_branch}!"
+        formatted_output = (
+            f"🚀 [GitPulse] New git pushed: successfully pushed to {remote}/{target_branch}!"
+        )
         return {
             "success": True,
             "remote": remote,

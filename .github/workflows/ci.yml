@@ -65,7 +65,11 @@ jobs:
   discord-push-notification:
     name: GitPulse Automated Discord Notification
     runs-on: ubuntu-latest
+    needs: [agent-runtime-tests, frontend-validation]
     if: github.event_name == 'push'
+    continue-on-error: true
+    env:
+      PYTHONPATH: .
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,9 +78,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
-      - name: Install notification dependencies
-        run: pip install httpx pydantic-settings python-dotenv
+      - name: Install dependencies from canonical manifest
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
 
       - name: Dispatch Automated Discord Notification
         env:

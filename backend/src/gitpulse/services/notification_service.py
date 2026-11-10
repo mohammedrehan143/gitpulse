@@ -473,27 +473,63 @@ def main():
     effective_pusher = resolve_effective_user(args.pusher)
     commits = [{"id": args.sha, "message": args.message}]
 
-    # 1. Immediately persist repository, commits, and activity event into database
-    res = asyncio.run(
-        activity_service.record_commit_activity(
-            repo=effective_repo,
-            actor=effective_pusher,
-            branch=args.branch,
-            sha=args.sha,
-            message=args.message,
-            commits=commits,
-            discord_webhook_url=args.webhook_url,
-            notify_discord=True,
-        )
+    # Validate DISCORD_WEBHOOK_URL configuration
+    webhook_candidate = (
+        args.webhook_url or os.environ.get("DISCORD_WEBHOOK_URL") or settings.DISCORD_WEBHOOK_URL
     )
+    if webhook_candidate and not str(webhook_candidate).strip():
+        webhook_candidate = None
 
-    if res.get("status") == "SUCCESS":
+    if not webhook_candidate:
         print(
-            f"[GitPulse] 🚀 Git activity stored in database (repo: {res.get('repository')}, "
-            f"event: {res.get('event_id')}) & Discord alerted."
+            "[GitPulse] ℹ️ DISCORD_WEBHOOK_URL is absent or unconfigured. "
+            "Skipping Discord notification delivery gracefully."
         )
     else:
-        print("[GitPulse] ⚠️ Git activity completed with notice.")
+        # Secure format validation
+        if not (
+            str(webhook_candidate).startswith("https://")
+            or str(webhook_candidate).startswith("http://")
+        ):
+            print(
+                "[GitPulse] ⚠️ DISCORD_WEBHOOK_URL is invalid (must begin with http:// or https://). "
+                "Skipping Discord notification delivery gracefully."
+            )
+            webhook_candidate = None
+
+    # Safely persist repository, commits, and activity event into database
+    try:
+        res = asyncio.run(
+            activity_service.record_commit_activity(
+                repo=effective_repo,
+                actor=effective_pusher,
+                branch=args.branch,
+                sha=args.sha,
+                message=args.message,
+                commits=commits,
+                discord_webhook_url=webhook_candidate,
+                notify_discord=bool(webhook_candidate),
+            )
+        )
+
+        if res.get("status") == "SUCCESS":
+            if res.get("delivered"):
+                print(
+                    f"[GitPulse] 🚀 Git activity stored in database (repo: {res.get('repository')}, "
+                    f"event: {res.get('event_id')}) & Discord notification dispatched."
+                )
+            else:
+                print(
+                    f"[GitPulse] 💾 Git activity stored in database (repo: {res.get('repository')}, "
+                    f"event: {res.get('event_id')}). Discord notification skipped (unconfigured or inactive)."
+                )
+        else:
+            print(f"[GitPulse] ⚠️ Git activity completed with notice: {res}")
+    except Exception as exc:
+        print(
+            f"[GitPulse] ⚠️ Notification dispatch encountered a non-fatal issue: {exc}. "
+            f"Skipping gracefully to preserve build status."
+        )
 
 
 if __name__ == "__main__":

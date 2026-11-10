@@ -741,7 +741,7 @@ class DataIngestionPipeline:
         self,
         owner: str,
         repo_name: str,
-        max_prs: int = 25,
+        max_prs: int = 5,
     ) -> dict[str, int]:
         """Fetches reviews for recent pull requests and populates ReviewRecord and first_reviewed_at."""
         processed, failed = 0, 0
@@ -757,13 +757,18 @@ class DataIngestionPipeline:
                 )
                 prs = list((await session.execute(stmt)).scalars().all())
 
+        consecutive_empty = 0
         for pr in prs:
+            if consecutive_empty >= 2:
+                break
             try:
                 raw_reviews = await self.client.fetch_pull_request_reviews(
                     owner, repo_name, pr.number
                 )
                 if not raw_reviews:
+                    consecutive_empty += 1
                     continue
+                consecutive_empty = 0
 
                 async with AsyncSessionLocal() as session:
                     async with session.begin():
