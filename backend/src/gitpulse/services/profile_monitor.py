@@ -137,7 +137,9 @@ class ProfileMonitorService:
                 action = payload.get("action")
 
                 if ev_type == "CreateEvent" and payload.get("ref_type") == "repository":
-                    logger.info("🎉 Newly created repository discovered via GitHub events: %s", repo_name)
+                    logger.info(
+                        "🎉 Newly created repository discovered via GitHub events: %s", repo_name
+                    )
 
                 # Persist event and guarantee repository record exists
                 await activity_service.record_generic_event(

@@ -595,31 +595,59 @@ class GroqIntelligenceService:
                 parts[0], parts[1], days=timeframe_days
             )
 
-        system_prompt = (
-            "You are GitPulse AI Engineering Assistant. "
-            "You provide answers to natural language questions regarding the engineer's repositories. "
-            "STRICT GROUNDING RULES: "
-            "1. You must ONLY answer using the verified facts provided below. "
-            "2. Never invent commits, PRs, authors, repositories, or metrics. "
-            "3. If requested information is missing or not present in the data, explicitly state it is unavailable. "
-            "4. Structure response in valid JSON with keys: "
-            "'answer' (detailed string), "
-            "'verified_facts' (object with referenced metrics), "
-            "'calculated_metrics' (object with derived values), "
-            "'ai_interpretations' (array of strings), "
-            "'missing_or_unavailable' (array of strings), "
-            "'timeframe' (string), "
-            "'data_freshness' (string)."
-        )
-
-        prompt = (
-            f"User Question: {question}\n\n"
-            f"Global Context ({timeframe_days} days):\n{json.dumps(global_context, indent=2)}\n\n"
-        )
         if repo_context and "error" not in repo_context:
-            prompt += f"Selected Repository Context:\n{json.dumps(repo_context, indent=2)}\n\n"
-
-        prompt += "Provide an accurate, grounded answer strictly based on this data."
+            system_prompt = (
+                "You are GitPulse Senior AI Engineering Assistant. "
+                "The engineer is asking a question about their selected repository. "
+                f"STRICT TARGET FOCUS: The user has selected the specific repository '{target_repo}'. "
+                "YOUR ENTIRE ANSWER MUST BE GROUNDED IN AND PRIMARILY FOCUSED ON THIS SPECIFIC REPOSITORY. "
+                "1. State the exact commit count (both all-time commits and timeframe commits), pull requests count (open and merged), "
+                "   issues, code volume (+lines added, -lines deleted), and the latest commit details (message, author, timestamp). "
+                "2. If zero commits were pushed in the recent 7-day window, explicitly explain: "
+                "   'In the active 7-day window there were 0 new commits pushed, but across repository history, "
+                "   <primary_contributor> has authored <all_time_commits_count> commits, <total_pull_requests_count> PRs, and <total_issues_count> issues "
+                '   (last active on <latest_commit_date> with commit "<latest_commit_message>").\' '
+                "3. Never claim 0 commits or 0 PRs if the verified facts show all_time_commits_count or total_pull_requests_count > 0. "
+                "4. Do NOT ramble about external/unrelated repositories unless specifically requested. "
+                "5. Output valid JSON with keys: "
+                "'answer' (detailed string), "
+                "'verified_facts' (object with referenced metrics), "
+                "'calculated_metrics' (object with derived values), "
+                "'ai_interpretations' (array of strings), "
+                "'missing_or_unavailable' (array of strings), "
+                "'timeframe' (string), "
+                "'data_freshness' (string)."
+            )
+            prompt = (
+                f"User Question: {question}\n\n"
+                f"PRIMARY SELECTED REPOSITORY: {target_repo}\n"
+                f"Selected Repository Telemetry & Facts:\n{json.dumps(repo_context, indent=2)}\n\n"
+                f"CRITICAL DIRECTIVE: Answer the question with primary focus on {target_repo}. "
+                f"Include its exact commit count, pull requests, issues, and developer contribution history. "
+                f"Do not distract with unrelated repositories."
+            )
+        else:
+            system_prompt = (
+                "You are GitPulse AI Engineering Assistant. "
+                "You provide answers to natural language questions regarding all monitored repositories. "
+                "STRICT GROUNDING RULES: "
+                "1. You must ONLY answer using the verified facts provided below. "
+                "2. Never invent commits, PRs, authors, repositories, or metrics. "
+                "3. If requested information is missing or not present in the data, explicitly state it is unavailable. "
+                "4. Structure response in valid JSON with keys: "
+                "'answer' (detailed string), "
+                "'verified_facts' (object with referenced metrics), "
+                "'calculated_metrics' (object with derived values), "
+                "'ai_interpretations' (array of strings), "
+                "'missing_or_unavailable' (array of strings), "
+                "'timeframe' (string), "
+                "'data_freshness' (string)."
+            )
+            prompt = (
+                f"User Question: {question}\n\n"
+                f"Global Context ({timeframe_days} days):\n{json.dumps(global_context, indent=2)}\n\n"
+                "Provide an accurate, grounded answer strictly based on this data."
+            )
 
         ai_result = self._call_groq_json(prompt, system_prompt)
         is_fallback = False
@@ -666,6 +694,54 @@ class GroqIntelligenceService:
         interpretations: list[str] = []
         missing: list[str] = []
         answer = ""
+
+        # Specific repository focus if target_repo is selected and question is not cross-repo
+        if (
+            repo_context
+            and "verified_facts" in repo_context
+            and not any(w in q for w in ["across all", "compare all", "every repo"])
+        ):
+            rf = repo_context["verified_facts"]
+            r_name = repo_context.get("repository", target_repo)
+            all_commits = rf.get("all_time_commits_count", rf.get("total_commits", 0))
+            all_prs = rf.get(
+                "total_pull_requests_count",
+                rf.get("open_prs_count", 0) + rf.get("merged_prs_count", 0),
+            )
+            all_issues = rf.get("total_issues_count", rf.get("open_issues_count", 0))
+            win_commits = rf.get("window_commits_count", 0)
+            author = rf.get("latest_commit_author", "developer")
+            date = rf.get("latest_commit_date", "N/A")
+            msg = rf.get("latest_commit_message", "N/A")
+            added = rf.get("all_time_lines_added", rf.get("lines_added", 0))
+            deleted = rf.get("all_time_lines_deleted", rf.get("lines_deleted", 0))
+
+            answer = (
+                f"Engineering activity summary for **{r_name}**:\n"
+                f"- **All-Time Commits**: {all_commits} commits authored across repository history.\n"
+                f"- **Pull Requests**: {all_prs} total pull requests ({rf.get('open_prs_count', 0)} open, {rf.get('merged_prs_count', 0)} merged).\n"
+                f"- **Issues**: {all_issues} total issues ({rf.get('open_issues_count', 0)} open, {rf.get('closed_issues_count', 0)} closed).\n"
+                f"- **Code Volume**: +{added:,} lines added, -{deleted:,} lines deleted.\n"
+                f'- **Latest Commit**: "{msg}" by @{author} on {date}.\n'
+            )
+            if win_commits == 0:
+                answer += f"\n*In the rolling {timeframe_days}-day window there were 0 new commits pushed; all {all_commits} commits and {all_prs} PRs are preserved in GitPulse's database.*"
+            else:
+                answer += f"\n*{win_commits} commit(s) were recorded within the active {timeframe_days}-day window.*"
+
+            verified.update(rf)
+            verified["target_repository"] = r_name
+            return {
+                "source": "grounded_rule_engine",
+                "answer": answer,
+                "verified_facts": verified,
+                "calculated_metrics": calculated,
+                "ai_interpretations": [
+                    "Repository summary derived directly from local database records."
+                ],
+                "missing_or_unavailable": ["Private branch stashes not pushed to remote."],
+                "timeframe": f"Last {timeframe_days} days (plus full repository history)",
+            }
 
         # Pattern 1: Longest open PRs
         if "pr" in q and ("longest" in q or "stalled" in q or "oldest" in q):

@@ -289,7 +289,9 @@ class SyncCheckpoint(Base):
     error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     records_synced: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
     repository: Mapped[Repository] = relationship("Repository", back_populates="checkpoints")

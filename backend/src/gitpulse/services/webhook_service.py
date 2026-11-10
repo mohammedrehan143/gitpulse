@@ -32,7 +32,10 @@ class WebhookService:
             return
 
         if signature_header:
-            expected = "sha256=" + hmac.new(secret.encode("utf-8"), payload_bytes, hashlib.sha256).hexdigest()
+            expected = (
+                "sha256="
+                + hmac.new(secret.encode("utf-8"), payload_bytes, hashlib.sha256).hexdigest()
+            )
             if not hmac.compare_digest(expected, signature_header):
                 logger.warning("Rejected webhook: Invalid HMAC SHA-256 signature.")
                 raise HTTPException(

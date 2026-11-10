@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Brain,
   Sparkles,
@@ -36,6 +36,15 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
   const [question, setQuestion] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Synchronize targetRepo when currentRepo or availableRepos changes from outside
+  useEffect(() => {
+    if (currentRepo) {
+      setTargetRepo(currentRepo);
+    } else if (!targetRepo && availableRepos.length > 0) {
+      setTargetRepo(availableRepos[0]);
+    }
+  }, [currentRepo, availableRepos]);
 
   // Results
   const [chatResult, setChatResult] = useState<AIAssistantChatResponse | null>(null);

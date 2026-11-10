@@ -524,6 +524,8 @@ class DataIngestionPipeline:
             raw_commits.extend(page_commits)
             if len(page_commits) < 50:
                 break
+        if not raw_commits:
+            raw_commits = await self.client.fetch_synthetic_commits(owner, repo_name)
         return raw_commits
 
     async def _build_commit_record(

@@ -17,7 +17,9 @@ async def _find_repository(
     session: Any, repo_github_id: int | None, repo_id: int | None, full_name: str | None
 ) -> Repository | None:
     if repo_github_id:
-        res = await session.execute(select(Repository).where(Repository.github_id == repo_github_id))
+        res = await session.execute(
+            select(Repository).where(Repository.github_id == repo_github_id)
+        )
         repo = res.scalar_one_or_none()
         if repo:
             return repo
@@ -96,7 +98,9 @@ class SubscriptionService:
                                 {
                                     "id": s.id,
                                     "user_id": s.user_id,
-                                    "webhook_url": s.webhook_url or settings.DISCORD_WEBHOOK_URL or "",
+                                    "webhook_url": s.webhook_url
+                                    or settings.DISCORD_WEBHOOK_URL
+                                    or "",
                                     "repo_id": s.repo_id,
                                     "repo_github_id": s.repo_github_id,
                                     "event_types": types,
@@ -110,7 +114,9 @@ class SubscriptionService:
                         if default_sub:
                             subscribers.append(default_sub)
         except Exception as exc:
-            logger.warning("Error fetching subscribers for repo (%s / %s): %s", repo_github_id, full_name, exc)
+            logger.warning(
+                "Error fetching subscribers for repo (%s / %s): %s", repo_github_id, full_name, exc
+            )
 
         # Ensure fallback to default configured webhook if still empty
         if not subscribers and settings.DISCORD_WEBHOOK_URL:

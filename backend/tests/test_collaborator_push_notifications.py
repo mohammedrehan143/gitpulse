@@ -53,13 +53,15 @@ async def test_repository_owner_pushes_notification_received(monkeypatch):
     dispatched_notifications = []
 
     async def mock_send(self, title, description, color=0x38BDF8, fields=None, webhook_url=None):
-        dispatched_notifications.append({
-            "title": title,
-            "description": description,
-            "color": color,
-            "fields": fields,
-            "webhook_url": webhook_url or self.webhook_url,
-        })
+        dispatched_notifications.append(
+            {
+                "title": title,
+                "description": description,
+                "color": color,
+                "fields": fields,
+                "webhook_url": webhook_url or self.webhook_url,
+            }
+        )
         return True
 
     monkeypatch.setattr(NotificationService, "send_discord_notification", mock_send)
@@ -72,13 +74,21 @@ async def test_repository_owner_pushes_notification_received(monkeypatch):
             "owner": {"login": "rehan-owner", "id": 1001},
         },
         "pusher": {"name": "rehan-owner", "email": "rehan@example.com"},
-        "sender": {"login": "rehan-owner", "id": 1001, "avatar_url": "https://avatars.github.com/u/1001"},
+        "sender": {
+            "login": "rehan-owner",
+            "id": 1001,
+            "avatar_url": "https://avatars.github.com/u/1001",
+        },
         "ref": "refs/heads/main",
         "commits": [
             {
                 "id": "c01owner1234567890",
                 "message": "feat: owner core update",
-                "author": {"name": "rehan-owner", "email": "rehan@example.com", "username": "rehan-owner"},
+                "author": {
+                    "name": "rehan-owner",
+                    "email": "rehan@example.com",
+                    "username": "rehan-owner",
+                },
             }
         ],
     }
@@ -106,13 +116,15 @@ async def test_collaborator_a_pushes_notification_received(monkeypatch):
     dispatched_notifications = []
 
     async def mock_send(self, title, description, color=0x38BDF8, fields=None, webhook_url=None):
-        dispatched_notifications.append({
-            "title": title,
-            "description": description,
-            "color": color,
-            "fields": fields,
-            "webhook_url": webhook_url or self.webhook_url,
-        })
+        dispatched_notifications.append(
+            {
+                "title": title,
+                "description": description,
+                "color": color,
+                "fields": fields,
+                "webhook_url": webhook_url or self.webhook_url,
+            }
+        )
         return True
 
     monkeypatch.setattr(NotificationService, "send_discord_notification", mock_send)
@@ -125,13 +137,21 @@ async def test_collaborator_a_pushes_notification_received(monkeypatch):
             "owner": {"login": "rehan-owner", "id": 1001},
         },
         "pusher": {"name": "alex-dev-local", "email": "alex@collab.io"},
-        "sender": {"login": "collaborator_alex", "id": 2002, "avatar_url": "https://avatars.github.com/u/2002"},
+        "sender": {
+            "login": "collaborator_alex",
+            "id": 2002,
+            "avatar_url": "https://avatars.github.com/u/2002",
+        },
         "ref": "refs/heads/main",
         "commits": [
             {
                 "id": "c02alex1234567890",
                 "message": "fix: resolve memory leak in pipeline",
-                "author": {"name": "Alex", "email": "alex@collab.io", "username": "collaborator_alex"},
+                "author": {
+                    "name": "Alex",
+                    "email": "alex@collab.io",
+                    "username": "collaborator_alex",
+                },
             }
         ],
     }
@@ -160,13 +180,15 @@ async def test_collaborator_b_pushes_notification_received(monkeypatch):
     dispatched_notifications = []
 
     async def mock_send(self, title, description, color=0x38BDF8, fields=None, webhook_url=None):
-        dispatched_notifications.append({
-            "title": title,
-            "description": description,
-            "color": color,
-            "fields": fields,
-            "webhook_url": webhook_url or self.webhook_url,
-        })
+        dispatched_notifications.append(
+            {
+                "title": title,
+                "description": description,
+                "color": color,
+                "fields": fields,
+                "webhook_url": webhook_url or self.webhook_url,
+            }
+        )
         return True
 
     monkeypatch.setattr(NotificationService, "send_discord_notification", mock_send)
@@ -179,13 +201,21 @@ async def test_collaborator_b_pushes_notification_received(monkeypatch):
             "owner": {"login": "rehan-owner", "id": 1001},
         },
         "pusher": {"name": "bianca-git", "email": "bianca@collab.io"},
-        "sender": {"login": "collaborator_bianca", "id": 3003, "avatar_url": "https://avatars.github.com/u/3003"},
+        "sender": {
+            "login": "collaborator_bianca",
+            "id": 3003,
+            "avatar_url": "https://avatars.github.com/u/3003",
+        },
         "ref": "refs/heads/main",
         "commits": [
             {
                 "id": "c03bianca1234567890",
                 "message": "feat: add forecasting anomaly integration",
-                "author": {"name": "Bianca", "email": "bianca@collab.io", "username": "collaborator_bianca"},
+                "author": {
+                    "name": "Bianca",
+                    "email": "bianca@collab.io",
+                    "username": "collaborator_bianca",
+                },
             }
         ],
     }
@@ -232,7 +262,11 @@ async def test_collaborator_pushes_to_different_branch_recorded(monkeypatch):
             {
                 "id": "c04charlie123456789",
                 "message": "feat: kafka stream handler on branch",
-                "author": {"name": "Charlie", "email": "charlie@collab.io", "username": "collaborator_charlie"},
+                "author": {
+                    "name": "Charlie",
+                    "email": "charlie@collab.io",
+                    "username": "collaborator_charlie",
+                },
             }
         ],
     }

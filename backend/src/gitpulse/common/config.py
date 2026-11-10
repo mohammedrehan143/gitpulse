@@ -87,6 +87,7 @@ class Settings(BaseSettings):
         except Exception:
             pass
         return "developer"
+
     ENABLE_PROFILE_MONITOR: bool = True
     PROFILE_MONITOR_INTERVAL_SECONDS: int = 20
 

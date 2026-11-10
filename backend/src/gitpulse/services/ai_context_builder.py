@@ -57,17 +57,40 @@ class AIContextBuilder:
 
             repo_id = repo.id
 
-            # 2. Commits & Lines
-            c_stmt = (
+            # Check if this repository has any commits; if 0, attempt on-demand ingestion
+            count_stmt = select(func.count(CommitRecord.id)).where(CommitRecord.repo_id == repo_id)
+            c_count = (await session.execute(count_stmt)).scalar() or 0
+
+            if c_count == 0:
+                try:
+                    from backend.src.gitpulse.ingestion.pipeline import DataIngestionPipeline
+
+                    pipeline = DataIngestionPipeline()
+                    await pipeline.run_pipeline(owner, repo_name, incremental=False, max_pages=3)
+                except Exception:
+                    pass
+
+            # 2. Commits & Lines (All-Time and Timeframe Window)
+            all_c_stmt = (
                 select(CommitRecord)
-                .where(CommitRecord.repo_id == repo_id, CommitRecord.committed_at >= cutoff)
+                .where(CommitRecord.repo_id == repo_id)
                 .order_by(CommitRecord.committed_at.desc())
             )
-            commits = list((await session.execute(c_stmt)).scalars().all())
+            all_commits = list((await session.execute(all_c_stmt)).scalars().all())
 
-            total_added = sum(c.lines_added for c in commits)
-            total_deleted = sum(c.lines_deleted for c in commits)
-            commit_authors = {c.author_name for c in commits if c.author_name}
+            window_commits = [
+                c
+                for c in all_commits
+                if _normalize_dt(c.committed_at) and _normalize_dt(c.committed_at) >= cutoff
+            ]
+
+            total_added = sum(c.lines_added for c in all_commits)
+            total_deleted = sum(c.lines_deleted for c in all_commits)
+            window_added = sum(c.lines_added for c in window_commits)
+            window_deleted = sum(c.lines_deleted for c in window_commits)
+            commit_authors = {c.author_name for c in all_commits if c.author_name}
+
+            display_commits = window_commits if window_commits else all_commits[:15]
             recent_commit_samples = [
                 {
                     "sha": c.sha[:8],
@@ -77,12 +100,21 @@ class AIContextBuilder:
                     "added": c.lines_added,
                     "deleted": c.lines_deleted,
                 }
-                for c in commits[:15]
+                for c in display_commits
             ]
+
+            latest_c = all_commits[0] if all_commits else None
+            latest_commit_date = (
+                latest_c.committed_at.strftime("%Y-%m-%d %H:%M UTC")
+                if (latest_c and latest_c.committed_at)
+                else "None"
+            )
+            latest_commit_message = latest_c.message.split("\n")[0][:120] if latest_c else "None"
+            latest_commit_author = latest_c.author_name if latest_c else "None"
 
             # Inactive days detection
             committed_days = {
-                c.committed_at.strftime("%Y-%m-%d") for c in commits if c.committed_at
+                c.committed_at.strftime("%Y-%m-%d") for c in window_commits if c.committed_at
             }
             all_days = {
                 (datetime.now(UTC) - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days)
@@ -172,19 +204,31 @@ class AIContextBuilder:
                     else datetime.now(UTC).isoformat()
                 ),
                 "verified_facts": {
-                    "total_commits": len(commits),
+                    "all_time_commits_count": len(all_commits),
+                    "window_commits_count": len(window_commits),
+                    "total_commits": len(all_commits),
                     "active_authors_count": len(commit_authors),
+                    "all_time_lines_added": total_added,
+                    "all_time_lines_deleted": total_deleted,
                     "lines_added": total_added,
                     "lines_deleted": total_deleted,
+                    "window_lines_added": window_added,
+                    "window_lines_deleted": window_deleted,
                     "code_churn_rate": churn,
                     "inactive_days": inactive_days_count,
+                    "total_pull_requests_count": len(all_prs),
                     "open_prs_count": len(open_prs),
                     "merged_prs_count": len(merged_prs),
                     "closed_prs_count": len(closed_prs),
                     "avg_pr_cycle_time_hours": avg_cycle_hours,
                     "long_running_prs_count": len(long_running_prs),
+                    "total_issues_count": len(all_issues),
                     "open_issues_count": len(open_issues),
                     "closed_issues_count": len(closed_issues),
+                    "latest_commit_date": latest_commit_date,
+                    "latest_commit_message": latest_commit_message,
+                    "latest_commit_author": latest_commit_author,
+                    "primary_contributor": latest_commit_author,
                     "tracked_contributors_count": len(contributor_roster),
                 },
                 "samples": {

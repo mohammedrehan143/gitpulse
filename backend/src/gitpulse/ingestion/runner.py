@@ -61,7 +61,12 @@ def format_event_summary(ev_type: str, actor_login: str, payload: dict[str, Any]
 
 
 async def _resolve_repo_record(
-    session: Any, owner: str, repo_name: str, full_name: str, repo_github_id: int | None, now: datetime
+    session: Any,
+    owner: str,
+    repo_name: str,
+    full_name: str,
+    repo_github_id: int | None,
+    now: datetime,
 ) -> Repository:
     repo = None
     if repo_github_id:
@@ -96,7 +101,11 @@ async def _resolve_repo_record(
 
 
 async def _persist_commit_records(
-    session: Any, repo_id: int, commits: list[dict[str, Any]], actor_login: str, default_dt: datetime
+    session: Any,
+    repo_id: int,
+    commits: list[dict[str, Any]],
+    actor_login: str,
+    default_dt: datetime,
 ) -> None:
     if not commits or not isinstance(commits, list):
         return
