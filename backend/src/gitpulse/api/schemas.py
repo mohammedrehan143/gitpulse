@@ -213,3 +213,119 @@ class UnsubscribeRepoResponse(BaseModel):
     status: str
     repository: str
     unsubscribed: bool
+
+
+class SyncCheckpointItem(BaseModel):
+    resource_type: str
+    status: str
+    last_item_id: str | None = None
+    last_checkpoint_timestamp: str | None = None
+    records_synced: int = 0
+
+
+class RepoStatsResponse(BaseModel):
+    repository: str
+    total_commits: int
+    open_pull_requests: int
+    merged_pull_requests: int
+    closed_pull_requests: int
+    open_issues: int
+    closed_issues: int
+    total_contributors: int
+    avg_pr_cycle_time_hours: float
+    total_lines_added: int
+    total_lines_deleted: int
+    churn_rate: float
+    last_synced_at: str | None = None
+    monitoring_status: str
+    checkpoints: list[SyncCheckpointItem] = Field(default_factory=list)
+
+
+class PullRequestItem(BaseModel):
+    id: int
+    github_id: int
+    number: int
+    title: str
+    state: str
+    author_login: str
+    created_at: str
+    updated_at: str | None = None
+    closed_at: str | None = None
+    merged_at: str | None = None
+    first_reviewed_at: str | None = None
+    additions: int = 0
+    deletions: int = 0
+    changed_files: int = 0
+    review_comments_count: int = 0
+
+
+class PullRequestsResponse(BaseModel):
+    repository: str
+    total_count: int
+    limit: int
+    offset: int
+    pull_requests: list[PullRequestItem]
+
+
+class IssueItem(BaseModel):
+    id: int
+    github_id: int
+    number: int
+    title: str
+    state: str
+    author_login: str
+    labels: list[str] = Field(default_factory=list)
+    comments_count: int = 0
+    created_at: str
+    updated_at: str | None = None
+    closed_at: str | None = None
+
+
+class IssuesResponse(BaseModel):
+    repository: str
+    total_count: int
+    limit: int
+    offset: int
+    issues: list[IssueItem]
+
+
+class ContributorItem(BaseModel):
+    id: int
+    login: str
+    name: str | None = None
+    avatar_url: str | None = None
+    html_url: str | None = None
+    contributions_count: int = 0
+    commits_count: int = 0
+    prs_count: int = 0
+    issues_count: int = 0
+    first_contributed_at: str | None = None
+    last_contributed_at: str | None = None
+
+
+class ContributorsResponse(BaseModel):
+    repository: str
+    total_count: int
+    contributors: list[ContributorItem]
+
+
+class SyncRepositoryResponse(BaseModel):
+    status: str
+    pipeline_run_id: int | None = None
+    target_repo: str
+    records_processed: int
+    records_failed: int
+    duration_seconds: float
+    error_message: str | None = None
+
+
+class ReconciliationResponse(BaseModel):
+    repository: str
+    status: str
+    reconciled_at: str
+    commits: dict[str, Any]
+    pull_requests: dict[str, Any]
+    issues: dict[str, Any]
+    contributors: dict[str, Any]
+    reviews: dict[str, Any]
+    metrics_recalculated: bool

@@ -76,6 +76,9 @@ def _mark_missing_repos_inaccessible(
     now: datetime,
 ) -> None:
     for full_name, existing_repo in existing_repos.items():
+        # Never deactivate dynamically tracked or monitored repositories
+        if existing_repo.monitoring_status == "MONITORED":
+            continue
         if full_name not in discovered_names and existing_repo.is_active:
             logger.info(
                 "Repository %s no longer in active target list. Updating status.", full_name
@@ -102,8 +105,18 @@ class RepositoryService:
         except Exception as exc:
             logger.error("Error during repository discovery: %s", exc)
 
-        # Fallback to fetching real metadata for target repositories
+        # Fallback to fetching metadata for configured targets or actively stored DB repos
         target_list = [r.strip() for r in settings.GITHUB_TARGET_REPOS.split(",") if r.strip()]
+        if not target_list:
+            try:
+                await init_db()
+                async with AsyncSessionLocal() as session:
+                    res = await session.execute(
+                        select(Repository.full_name).where(Repository.is_active.is_(True))
+                    )
+                    target_list = [r[0] for r in res.fetchall() if r[0]]
+            except Exception:
+                pass
         results = []
         for target in target_list:
             parts = target.split("/")
@@ -243,10 +256,40 @@ class RepositoryService:
         return list(RepositoryService._cached_repositories)
 
     async def get_all_repositories(self) -> list[dict[str, Any]]:
-        """Returns all repositories in inventory."""
-        if not RepositoryService._cached_repositories:
-            await self.sync_repositories()
-        return list(RepositoryService._cached_repositories)
+        """Returns all repositories in inventory directly from the database."""
+        await init_db()
+        async with AsyncSessionLocal() as session:
+            stmt = select(Repository).order_by(
+                Repository.last_synced_at.desc(), Repository.id.desc()
+            )
+            res = await session.execute(stmt)
+            db_repos = res.scalars().all()
+            if not db_repos:
+                return await self.sync_repositories()
+
+            results = [
+                {
+                    "id": r.id,
+                    "github_id": r.github_id,
+                    "owner": r.owner,
+                    "name": r.name,
+                    "full_name": r.full_name,
+                    "description": r.description,
+                    "visibility": r.visibility,
+                    "default_branch": r.default_branch,
+                    "html_url": r.html_url,
+                    "pushed_at": r.pushed_at.isoformat() if r.pushed_at else None,
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    "is_active": r.is_active,
+                    "monitoring_status": r.monitoring_status,
+                    "last_synced_at": r.last_synced_at.isoformat() if r.last_synced_at else None,
+                    "stars_count": r.stars_count,
+                    "forks_count": r.forks_count,
+                }
+                for r in db_repos
+            ]
+            RepositoryService._cached_repositories = list(results)
+            return results
 
     async def get_monitored_repositories(self) -> list[dict[str, Any]]:
         """Returns only actively monitored repositories."""

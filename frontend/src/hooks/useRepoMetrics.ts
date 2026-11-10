@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { VelocityResponse } from '../types';
 import { fetchRepositoryVelocity } from '../services/api';
 
@@ -6,6 +6,11 @@ export function useRepoMetrics(owner: string, repo: string, timeframe = '30d') {
   const [data, setData] = useState<VelocityResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+
+  const refetch = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -29,7 +34,7 @@ export function useRepoMetrics(owner: string, repo: string, timeframe = '30d') {
     return () => {
       isMounted = false;
     };
-  }, [owner, repo, timeframe]);
+  }, [owner, repo, timeframe, refreshTrigger]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 }

@@ -68,8 +68,25 @@ class Settings(BaseSettings):
     AUTO_DISCOVER_REPOSITORIES: bool = True
     REPO_DISCOVERY_INTERVAL_MINUTES: int = 60
     INGESTION_SCHEDULE_INTERVAL_MINUTES: int = 60
-    GITHUB_TARGET_REPOS: str = "apache/spark,fastapi/fastapi,facebook/react"
-    GITHUB_TARGET_USER: str = "mohammedrehan143"
+    GITHUB_TARGET_REPOS: str = ""
+    GITHUB_TARGET_USER: str = ""
+
+    @property
+    def effective_target_user(self) -> str:
+        """Dynamically resolves target GitHub user with zero hardcoding."""
+        if self.GITHUB_TARGET_USER and self.GITHUB_TARGET_USER.strip():
+            return self.GITHUB_TARGET_USER.strip()
+        try:
+            import subprocess
+
+            out = subprocess.check_output(
+                ["git", "config", "user.name"], text=True, timeout=2, stderr=subprocess.DEVNULL
+            ).strip()
+            if out:
+                return out
+        except Exception:
+            pass
+        return "developer"
     ENABLE_PROFILE_MONITOR: bool = True
     PROFILE_MONITOR_INTERVAL_SECONDS: int = 20
 

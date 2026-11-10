@@ -10,6 +10,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.src.gitpulse.api.ai_routes import router as ai_router
 from backend.src.gitpulse.api.routes import router
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
@@ -155,6 +156,7 @@ async def top_level_keepalive(source: str = "direct", sync: bool = False):
 
 # Include API Routers
 app.include_router(router)
+app.include_router(ai_router)
 if intelligence_router is not None:
     app.include_router(intelligence_router)
 

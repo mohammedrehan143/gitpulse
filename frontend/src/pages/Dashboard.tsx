@@ -6,23 +6,18 @@ import { ActivityChart } from '../charts/ActivityChart';
 import { RecentEventsTable } from '../components/RecentEventsTable';
 import { RepositoryList } from '../components/RepositoryList';
 import { AIInsightsCard } from '../components/AIInsightsCard';
+import { PullRequestsTable } from '../components/PullRequestsTable';
+import { IssuesTable } from '../components/IssuesTable';
+import { ContributorsGrid } from '../components/ContributorsGrid';
+import { CheckpointsCard } from '../components/CheckpointsCard';
 import { useRepoMetrics } from '../hooks/useRepoMetrics';
 import {
   fetchRepositoryEvents,
   fetchDiscoveredRepositories,
   refreshDiscoveredRepositories,
   fetchAIInsights,
+  fetchRepositoryStats,
   createRepoWebSocket,
-} from '../services/api';
-import { EventItem, DiscoveredRepository, AIInsightsResponse } from '../types';
-import { GitCommit, Users, Clock, Flame, Radio, Brain, Activity, RefreshCw } from 'lucide-react';
-import {
-  ForecastingCard,
-  AnomalyCard,
-  IssueIntelligenceCard,
-  PRIntelligenceCard,
-} from '../components/intelligence';
-import {
   fetchActivityForecast,
   fetchAnomalies,
   fetchIssueResolutionInsights,
@@ -32,21 +27,47 @@ import {
   triggerModelTraining,
 } from '../services/api';
 import {
+  EventItem,
+  DiscoveredRepository,
+  AIInsightsResponse,
+  RepoStatsResponse,
   ActivityForecastResponse,
   AnomalyResponse,
   IssueResolutionInsights,
   PRReviewDelayInsights,
 } from '../types';
+import {
+  GitCommit,
+  Users,
+  Clock,
+  Flame,
+  Radio,
+  Brain,
+  Activity,
+  GitPullRequest,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
+import { AIEngineeringAssistant } from '../components/AIEngineeringAssistant';
+import {
+  ForecastingCard,
+  AnomalyCard,
+  IssueIntelligenceCard,
+  PRIntelligenceCard,
+} from '../components/intelligence';
 
 export const Dashboard: React.FC = () => {
   const [repositories, setRepositories] = useState<DiscoveredRepository[]>([]);
-  const [selectedRepo, setSelectedRepo] = useState<string>('apache/spark');
+  const [selectedRepo, setSelectedRepo] = useState<string>('');
   const [reposLoading, setReposLoading] = useState<boolean>(true);
   const [repoError, setRepoError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Timeframe selector
   const [timeframe, setTimeframe] = useState<'7d' | '14d' | '30d' | '90d'>('30d');
+
+  // Repo Overview Statistics
+  const [repoStats, setRepoStats] = useState<RepoStatsResponse | null>(null);
 
   // Events & WebSocket
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -59,7 +80,7 @@ export const Dashboard: React.FC = () => {
   const [aiError, setAiError] = useState<string | null>(null);
 
   // Tab View
-  const [activeTab, setActiveTab] = useState<'overview' | 'intelligence'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ai_assistant' | 'pulls' | 'issues' | 'contributors' | 'intelligence'>('overview');
 
   // Intelligence State
   const [forecastData, setForecastData] = useState<ActivityForecastResponse | null>(null);
@@ -87,7 +108,6 @@ export const Dashboard: React.FC = () => {
       .then((res) => {
         setRepositories(res.repositories);
         if (res.repositories.length > 0) {
-          // Default to first active repository if available
           const firstActive = res.repositories.find((r) => r.is_active) || res.repositories[0];
           setSelectedRepo(firstActive.full_name);
         }
@@ -117,7 +137,19 @@ export const Dashboard: React.FC = () => {
   };
 
   const [owner, repo] = selectedRepo.includes('/') ? selectedRepo.split('/') : ['apache', 'spark'];
-  const { data: metrics, loading: metricsLoading, error: metricsError } = useRepoMetrics(owner, repo, timeframe);
+  const { data: metrics, loading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useRepoMetrics(owner, repo, timeframe);
+
+  // Load repo stats
+  const loadRepoStats = useCallback(() => {
+    if (!owner || !repo) return;
+    fetchRepositoryStats(owner, repo)
+      .then((res) => setRepoStats(res))
+      .catch((err) => console.debug('Failed to load repo stats:', err));
+  }, [owner, repo]);
+
+  useEffect(() => {
+    loadRepoStats();
+  }, [loadRepoStats]);
 
   // Load recent events
   useEffect(() => {
@@ -179,28 +211,30 @@ export const Dashboard: React.FC = () => {
   // Load intelligence models data
   const loadIntelligenceData = useCallback(async () => {
     setForecastLoading(true);
+    setForecastError(null);
     setAnomalyLoading(true);
+    setAnomalyError(null);
     setIssueLoading(true);
     setPrLoading(true);
 
     fetchActivityForecast(owner, repo, forecastHorizon)
       .then((res) => setForecastData(res))
-      .catch((err) => setForecastError(err.message))
+      .catch((err) => setForecastError(err.message || 'Forecast failed'))
       .finally(() => setForecastLoading(false));
 
     fetchAnomalies(owner, repo, anomalyThreshold)
       .then((res) => setAnomalyData(res))
-      .catch((err) => setAnomalyError(err.message))
+      .catch((err) => setAnomalyError(err.message || 'Anomaly scan failed'))
       .finally(() => setAnomalyLoading(false));
 
     fetchIssueResolutionInsights(owner, repo)
       .then((res) => setIssueInsights(res))
-      .catch(() => {})
+      .catch(() => setIssueInsights(null))
       .finally(() => setIssueLoading(false));
 
     fetchPRReviewDelayInsights(owner, repo)
       .then((res) => setPrInsights(res))
-      .catch(() => {})
+      .catch(() => setPrInsights(null))
       .finally(() => setPrLoading(false));
   }, [owner, repo, forecastHorizon, anomalyThreshold]);
 
@@ -215,21 +249,33 @@ export const Dashboard: React.FC = () => {
     setRetrainMsg(null);
     try {
       await triggerModelTraining(owner, repo);
-      setRetrainMsg('All analytical models retrained and persisted successfully!');
+      setRetrainMsg('ML Pipeline executed! Models retrained with database records.');
       loadIntelligenceData();
     } catch (err: unknown) {
-      setRetrainMsg(err instanceof Error ? err.message : 'Retraining failed');
+      const msg = err instanceof Error ? err.message : 'Retraining failed';
+      setRetrainMsg(`Training error: ${msg}`);
     } finally {
       setIsRetraining(false);
     }
   };
 
-  // Reset AI insights when repository changes
-  useEffect(() => {
-    setAiInsights(null);
-    setAiError(null);
-    setRetrainMsg(null);
-  }, [owner, repo]);
+  // Compute authentic dynamic trend from timeline points
+  const getCommitTrend = () => {
+    if (!metrics || !metrics.timeline || metrics.timeline.length < 2) {
+      return { text: 'Real data synced', trend: 'neutral' as const };
+    }
+    const mid = Math.floor(metrics.timeline.length / 2);
+    const prior = metrics.timeline.slice(0, mid).reduce((acc, p) => acc + p.commit_count, 0);
+    const recent = metrics.timeline.slice(mid).reduce((acc, p) => acc + p.commit_count, 0);
+    if (prior === 0 && recent === 0) return { text: '0 commits in timeframe', trend: 'neutral' as const };
+    if (prior === 0) return { text: `+${recent} commits in recent days`, trend: 'up' as const };
+    const pct = Math.round(((recent - prior) / prior) * 100);
+    if (pct > 0) return { text: `+${pct}% vs prior half`, trend: 'up' as const };
+    if (pct < 0) return { text: `${pct}% vs prior half`, trend: 'down' as const };
+    return { text: 'Stable vs prior half', trend: 'neutral' as const };
+  };
+
+  const commitTrend = getCommitTrend();
 
   return (
     <MainLayout
@@ -274,6 +320,7 @@ export const Dashboard: React.FC = () => {
           marginBottom: '1.5rem',
           borderBottom: '1px solid #27272a',
           paddingBottom: '8px',
+          overflowX: 'auto',
         }}
       >
         <button
@@ -294,7 +341,112 @@ export const Dashboard: React.FC = () => {
           }}
         >
           <Activity size={16} />
-          Velocity & Live Streams
+          Velocity & Overview
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ai_assistant')}
+          style={{
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '6px',
+            border: activeTab === 'ai_assistant' ? '1px solid #6366f1' : '1px solid #27272a',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            backgroundColor: activeTab === 'ai_assistant' ? '#4f46e5' : '#141414',
+            color: '#ffffff',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Brain size={16} />
+          AI Assistant & Insights
+          <span
+            style={{
+              padding: '2px 6px',
+              fontSize: '10px',
+              backgroundColor: activeTab === 'ai_assistant' ? '#ffffff' : '#312e81',
+              color: activeTab === 'ai_assistant' ? '#1e1b4b' : '#c7d2fe',
+              borderRadius: '4px',
+              fontWeight: 800,
+            }}
+          >
+            GROQ
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('pulls')}
+          style={{
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '6px',
+            border: activeTab === 'pulls' ? '1px solid #dc2626' : '1px solid #27272a',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            backgroundColor: activeTab === 'pulls' ? '#dc2626' : '#141414',
+            color: '#ffffff',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <GitPullRequest size={16} />
+          Pull Requests
+          {repoStats && (
+            <span style={{ fontSize: '11px', opacity: 0.8 }}>({repoStats.open_pull_requests + repoStats.closed_pull_requests})</span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('issues')}
+          style={{
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '6px',
+            border: activeTab === 'issues' ? '1px solid #dc2626' : '1px solid #27272a',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            backgroundColor: activeTab === 'issues' ? '#dc2626' : '#141414',
+            color: '#ffffff',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <AlertCircle size={16} />
+          Issues
+          {repoStats && (
+            <span style={{ fontSize: '11px', opacity: 0.8 }}>({repoStats.open_issues + repoStats.closed_issues})</span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('contributors')}
+          style={{
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: 700,
+            borderRadius: '6px',
+            border: activeTab === 'contributors' ? '1px solid #dc2626' : '1px solid #27272a',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            backgroundColor: activeTab === 'contributors' ? '#dc2626' : '#141414',
+            color: '#ffffff',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Users size={16} />
+          Contributors
+          {repoStats && (
+            <span style={{ fontSize: '11px', opacity: 0.8 }}>({repoStats.total_contributors})</span>
+          )}
         </button>
 
         <button
@@ -331,7 +483,20 @@ export const Dashboard: React.FC = () => {
         </button>
       </div>
 
-      {activeTab === 'intelligence' ? (
+      {activeTab === 'ai_assistant' ? (
+        <div style={{ marginBottom: '2rem' }}>
+          <AIEngineeringAssistant
+            currentRepo={selectedRepo}
+            availableRepos={repositories.map((r) => r.full_name)}
+          />
+        </div>
+      ) : activeTab === 'pulls' ? (
+        <PullRequestsTable owner={owner} repo={repo} />
+      ) : activeTab === 'issues' ? (
+        <IssuesTable owner={owner} repo={repo} />
+      ) : activeTab === 'contributors' ? (
+        <ContributorsGrid owner={owner} repo={repo} />
+      ) : activeTab === 'intelligence' ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '2rem' }}>
           {/* Top Control Bar for Retraining */}
           <div
@@ -358,53 +523,61 @@ export const Dashboard: React.FC = () => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {retrainMsg && (
-                <span style={{ fontSize: '12px', color: '#ffffff', fontWeight: 600 }}>
+                <span style={{ fontSize: '12px', color: retrainMsg.includes('error') ? '#fca5a5' : '#86efac' }}>
                   {retrainMsg}
                 </span>
               )}
+
               <button
                 onClick={handleRetrainAll}
                 disabled={isRetraining}
                 style={{
-                  padding: '7px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 14px',
+                  fontSize: '12px',
+                  fontWeight: 600,
                   backgroundColor: '#dc2626',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '6px',
-                  fontWeight: 700,
-                  fontSize: '12px',
                   cursor: isRetraining ? 'not-allowed' : 'pointer',
                   opacity: isRetraining ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
                 }}
               >
-                <RefreshCw size={14} />
-                {isRetraining ? 'Retraining ML Models...' : 'Retrain All Models'}
+                <RefreshCw size={14} className={isRetraining ? 'animate-spin' : ''} />
+                {isRetraining ? 'Retraining...' : 'Retrain All Models'}
               </button>
             </div>
           </div>
 
-          {/* Module A: Forecasting */}
-          <ForecastingCard
-            data={forecastData}
-            loading={forecastLoading}
-            error={forecastError}
-            horizon={forecastHorizon}
-            onHorizonChange={(h) => setForecastHorizon(h)}
-          />
+          {/* Module Grid 1: Activity Forecast & Anomaly Detection */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))',
+              gap: '24px',
+            }}
+          >
+            <ForecastingCard
+              data={forecastData}
+              loading={forecastLoading}
+              error={forecastError}
+              horizon={forecastHorizon}
+              onHorizonChange={(h) => setForecastHorizon(h)}
+            />
 
-          {/* Module B: Anomalies */}
-          <AnomalyCard
-            data={anomalyData}
-            loading={anomalyLoading}
-            error={anomalyError}
-            threshold={anomalyThreshold}
-            onThresholdChange={(t) => setAnomalyThreshold(t)}
-          />
+            <AnomalyCard
+              data={anomalyData}
+              loading={anomalyLoading}
+              error={anomalyError}
+              threshold={anomalyThreshold}
+              onThresholdChange={(t) => setAnomalyThreshold(t)}
+            />
+          </div>
 
-          {/* Bottom Grid for Module C & Module D */}
+          {/* Module Grid 2: Predictive Turnaround */}
           <div
             style={{
               display: 'grid',
@@ -412,14 +585,12 @@ export const Dashboard: React.FC = () => {
               gap: '24px',
             }}
           >
-            {/* Module C: Issue Resolution Duration */}
             <IssueIntelligenceCard
               insights={issueInsights}
               loading={issueLoading}
               onPredict={(title, labels) => predictIssueResolution(owner, repo, { title, labels })}
             />
 
-            {/* Module D: PR First-Review Delay */}
             <PRIntelligenceCard
               insights={prInsights}
               loading={prLoading}
@@ -436,6 +607,18 @@ export const Dashboard: React.FC = () => {
         </section>
       ) : (
         <>
+          {/* Data Pipeline & Synchronization Checkpoints Card */}
+          <CheckpointsCard
+            owner={owner}
+            repo={repo}
+            checkpoints={repoStats?.checkpoints || []}
+            lastSyncedAt={repoStats?.last_synced_at}
+            onRefreshStats={() => {
+              loadRepoStats();
+              refetchMetrics();
+            }}
+          />
+
           {/* Top Velocity Metrics Cards & Timeframe Selector Bar */}
           <div
             style={{
@@ -485,38 +668,83 @@ export const Dashboard: React.FC = () => {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: '1rem',
-              marginBottom: '2rem',
+              marginBottom: '1rem',
             }}
           >
             <MetricsCard
-              label={`Total Commits (${timeframe})`}
+              label={`Commits (${timeframe})`}
               value={metrics ? metrics.summary.total_commits : '...'}
-              subtext="+14% vs previous period"
-              trend="up"
+              subtext={commitTrend.text}
+              trend={commitTrend.trend}
               icon={<GitCommit size={16} />}
             />
             <MetricsCard
               label="Active Contributors"
               value={metrics ? metrics.summary.active_contributors : '...'}
-              subtext="Healthy collaboration ratio"
+              subtext={`${metrics ? metrics.summary.active_contributors : 0} active in ${timeframe}`}
               trend="neutral"
               icon={<Users size={16} />}
             />
             <MetricsCard
               label="Avg PR Cycle Time"
               value={metrics ? `${metrics.summary.avg_pr_cycle_time_hours}h` : '...'}
-              subtext="-2.4h turnaround speed"
-              trend="up"
+              subtext={metrics && metrics.summary.avg_pr_cycle_time_hours > 0 ? 'From merged PRs' : 'No merged PRs'}
+              trend={metrics && metrics.summary.avg_pr_cycle_time_hours > 0 ? 'up' : 'neutral'}
               icon={<Clock size={16} />}
             />
             <MetricsCard
               label="Code Churn Rate"
               value={metrics ? `${(metrics.summary.churn_rate * 100).toFixed(0)}%` : '...'}
-              subtext="Refactoring efficiency"
+              subtext={
+                metrics
+                  ? `${metrics.summary.lines_added.toLocaleString()} + / ${metrics.summary.lines_deleted.toLocaleString()} -`
+                  : 'Lines added/deleted'
+              }
               trend="neutral"
               icon={<Flame size={16} />}
             />
           </section>
+
+          {/* Secondary Stats Row: PRs, Issues, and All-Time Metrics */}
+          {repoStats && (
+            <section
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+                marginBottom: '2rem',
+              }}
+            >
+              <MetricsCard
+                label="Pull Requests"
+                value={repoStats.open_pull_requests + repoStats.closed_pull_requests}
+                subtext={`${repoStats.open_pull_requests} open / ${repoStats.merged_pull_requests} merged`}
+                trend="neutral"
+                icon={<GitPullRequest size={16} />}
+              />
+              <MetricsCard
+                label="Issues Tracked"
+                value={repoStats.open_issues + repoStats.closed_issues}
+                subtext={`${repoStats.open_issues} open / ${repoStats.closed_issues} resolved`}
+                trend="neutral"
+                icon={<AlertCircle size={16} />}
+              />
+              <MetricsCard
+                label="Total Repository Commits"
+                value={repoStats.total_commits}
+                subtext={`All-time indexed in database`}
+                trend="up"
+                icon={<GitCommit size={16} />}
+              />
+              <MetricsCard
+                label="Total Contributors"
+                value={repoStats.total_contributors}
+                subtext="Registered in contributors roster"
+                trend="neutral"
+                icon={<Users size={16} />}
+              />
+            </section>
+          )}
 
           {/* Groq AI Velocity Copilot Panel */}
           <AIInsightsCard

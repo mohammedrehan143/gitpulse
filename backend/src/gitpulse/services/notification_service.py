@@ -95,10 +95,18 @@ def _build_git_push_fields(
 
     if commits:
         c_lines = _format_commit_lines(commits, repo_name, actor_display)
-        fields.append({"name": "📝 Commits Committed", "value": "\n".join(c_lines), "inline": False})
+        fields.append(
+            {"name": "📝 Commits Committed", "value": "\n".join(c_lines), "inline": False}
+        )
 
     if compare_url:
-        fields.append({"name": "🔍 Compare Changes", "value": f"[View Full Diff]({compare_url})", "inline": False})
+        fields.append(
+            {
+                "name": "🔍 Compare Changes",
+                "value": f"[View Full Diff]({compare_url})",
+                "inline": False,
+            }
+        )
 
     return title, desc, fields
 
@@ -444,11 +452,11 @@ class NotificationService:
 
 
 def main():
-    """CLI utility to dispatch a test or automated Git push alert to Discord."""
-    parser = argparse.ArgumentParser(description="GitPulse Discord Notification CLI")
+    """CLI utility invoked by Universal Git Hooks to persist activity to DB and dispatch alerts."""
+    parser = argparse.ArgumentParser(description="GitPulse Activity & Discord Notification CLI")
     parser.add_argument("--webhook-url", default=None, help="Discord Webhook URL override")
-    parser.add_argument("--repo", default="gitpulse", help="Repository full name")
-    parser.add_argument("--pusher", default="developer", help="Pusher username")
+    parser.add_argument("--repo", default=None, help="Repository full name (owner/repo or repo)")
+    parser.add_argument("--pusher", default=None, help="Pusher / author username")
     parser.add_argument("--branch", default="main", help="Target branch")
     parser.add_argument(
         "--message", default="Automated Git push notification from GitPulse", help="Commit message"
@@ -456,21 +464,36 @@ def main():
     parser.add_argument("--sha", default="head", help="Commit SHA hash")
     args = parser.parse_args()
 
-    notifier = NotificationService(discord_webhook_url=args.webhook_url)
+    from backend.src.gitpulse.services.activity_service import (
+        activity_service,
+        resolve_effective_user,
+    )
+
+    effective_repo = args.repo or "gitpulse"
+    effective_pusher = resolve_effective_user(args.pusher)
     commits = [{"id": args.sha, "message": args.message}]
 
-    success = asyncio.run(
-        notifier.notify_git_push(
-            repo_name=args.repo,
-            pusher=args.pusher,
+    # 1. Immediately persist repository, commits, and activity event into database
+    res = asyncio.run(
+        activity_service.record_commit_activity(
+            repo=effective_repo,
+            actor=effective_pusher,
             branch=args.branch,
+            sha=args.sha,
+            message=args.message,
             commits=commits,
+            discord_webhook_url=args.webhook_url,
+            notify_discord=True,
         )
     )
-    if success:
-        print("[GitPulse] 🚀 New git pushed successfully! Discord notification delivered.")
+
+    if res.get("status") == "SUCCESS":
+        print(
+            f"[GitPulse] 🚀 Git activity stored in database (repo: {res.get('repository')}, "
+            f"event: {res.get('event_id')}) & Discord alerted."
+        )
     else:
-        print("[GitPulse] ⚠️ Notification skipped or failed (check DISCORD_WEBHOOK_URL).")
+        print("[GitPulse] ⚠️ Git activity completed with notice.")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,18 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.src.gitpulse.storage.database import Base
@@ -46,6 +57,12 @@ class Repository(Base):
     subscriptions: Mapped[list[RepositorySubscription]] = relationship(
         "RepositorySubscription", back_populates="repository", cascade="all, delete-orphan"
     )
+    checkpoints: Mapped[list[SyncCheckpoint]] = relationship(
+        "SyncCheckpoint", back_populates="repository", cascade="all, delete-orphan"
+    )
+    contributors: Mapped[list[ContributorRecord]] = relationship(
+        "ContributorRecord", back_populates="repository", cascade="all, delete-orphan"
+    )
 
 
 class GitHubEvent(Base):
@@ -68,6 +85,8 @@ class GitHubEvent(Base):
 
     repository: Mapped[Repository] = relationship("Repository", back_populates="events")
 
+    __table_args__ = (Index("ix_events_repo_created_at", "repo_id", "created_at"),)
+
 
 class CommitRecord(Base):
     __tablename__ = "commits"
@@ -83,6 +102,8 @@ class CommitRecord(Base):
     lines_added: Mapped[int] = mapped_column(Integer, default=0)
     lines_deleted: Mapped[int] = mapped_column(Integer, default=0)
     committed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+    __table_args__ = (Index("ix_commits_repo_committed_at", "repo_id", "committed_at"),)
 
 
 class DeveloperMetric(Base):
@@ -134,6 +155,11 @@ class PullRequestRecord(Base):
         "ReviewRecord", back_populates="pull_request"
     )
 
+    __table_args__ = (
+        Index("ix_prs_repo_created_at", "repo_id", "created_at"),
+        Index("ix_prs_repo_state", "repo_id", "state"),
+    )
+
 
 class ReviewRecord(Base):
     __tablename__ = "reviews"
@@ -177,6 +203,11 @@ class IssueRecord(Base):
     raw_payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     repository: Mapped[Repository] = relationship("Repository", back_populates="issues")
+
+    __table_args__ = (
+        Index("ix_issues_repo_created_at", "repo_id", "created_at"),
+        Index("ix_issues_repo_state", "repo_id", "state"),
+    )
 
 
 class PipelineRun(Base):
@@ -234,4 +265,68 @@ class WebhookDelivery(Base):
     status: Mapped[str] = mapped_column(String(30), default="PROCESSED")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True
+    )
+
+
+class SyncCheckpoint(Base):
+    __tablename__ = "sync_checkpoints"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
+    repo_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("repositories.id", ondelete="CASCADE"), index=True
+    )
+    resource_type: Mapped[str] = mapped_column(
+        String(50), index=True
+    )  # "commits", "pull_requests", "issues", "events", "contributors"
+    last_checkpoint_timestamp: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_item_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    cursor: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="COMPLETED", index=True)
+    error_message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    records_synced: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
+
+    repository: Mapped[Repository] = relationship("Repository", back_populates="checkpoints")
+
+    __table_args__ = (
+        UniqueConstraint("repo_id", "resource_type", name="uq_sync_checkpoint_repo_resource"),
+    )
+
+
+class ContributorRecord(Base):
+    __tablename__ = "contributors"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
+    repo_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("repositories.id", ondelete="CASCADE"), index=True
+    )
+    login: Mapped[str] = mapped_column(String(100), index=True)
+    name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    html_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    contributions_count: Mapped[int] = mapped_column(Integer, default=0)
+    commits_count: Mapped[int] = mapped_column(Integer, default=0)
+    prs_count: Mapped[int] = mapped_column(Integer, default=0)
+    issues_count: Mapped[int] = mapped_column(Integer, default=0)
+    first_contributed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_contributed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    repository: Mapped[Repository] = relationship("Repository", back_populates="contributors")
+
+    __table_args__ = (
+        UniqueConstraint("repo_id", "login", name="uq_contributors_repo_login"),
+        Index("ix_contributors_repo_contributions", "repo_id", "contributions_count"),
     )

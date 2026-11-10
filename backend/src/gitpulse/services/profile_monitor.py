@@ -9,7 +9,6 @@ from sqlalchemy import select
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
 from backend.src.gitpulse.ingestion.github_client import GitHubClient
-from backend.src.gitpulse.ingestion.runner import _persist_events_to_db
 from backend.src.gitpulse.services.notification_service import NotificationService
 from backend.src.gitpulse.storage.database import AsyncSessionLocal, init_db
 from backend.src.gitpulse.storage.models import GitHubEvent
@@ -29,7 +28,7 @@ class ProfileMonitorService:
         notifier: NotificationService | None = None,
         interval_seconds: int | None = None,
     ):
-        self.username = username or settings.GITHUB_TARGET_USER or "mohammedrehan143"
+        self.username = username or settings.effective_target_user
         self.client = client or GitHubClient()
         self.notifier = notifier or NotificationService()
         self.interval_seconds = interval_seconds or settings.PROFILE_MONITOR_INTERVAL_SECONDS or 20
@@ -38,8 +37,28 @@ class ProfileMonitorService:
         self._running = False
         self._task: asyncio.Task | None = None
 
+    async def _resolve_username(self) -> str:
+        """Dynamically resolves the active user login with zero hardcoding."""
+        if self.username and self.username not in ("developer", "unknown"):
+            return self.username
+        if settings.GITHUB_TARGET_USER and settings.GITHUB_TARGET_USER.strip():
+            self.username = settings.GITHUB_TARGET_USER.strip()
+            return self.username
+        try:
+            auth_user = await self.client.get_authenticated_user()
+            if auth_user and auth_user.get("login"):
+                self.username = auth_user["login"]
+                return self.username
+        except Exception:
+            pass
+        from backend.src.gitpulse.services.activity_service import resolve_effective_user
+
+        self.username = resolve_effective_user()
+        return self.username
+
     async def _prime_seen_ids(self) -> None:
         """Loads historical event IDs to prevent duplicate alerts on initial startup."""
+        await self._resolve_username()
         if self._is_primed:
             return
 
@@ -107,13 +126,40 @@ class ProfileMonitorService:
             except Exception as exc:
                 logger.error("Failed to dispatch Discord alert for event %s: %s", eid, exc)
 
-            # 2. Persist event to database
-            if "/" in repo_name:
-                parts = repo_name.split("/", 1)
-                try:
-                    await _persist_events_to_db(parts[0], parts[1], [event])
-                except Exception as exc:
-                    logger.debug("Event persistence note for %s: %s", repo_name, exc)
+            # 2. Persist event, newly created repo, and commits to database immediately
+            try:
+                from backend.src.gitpulse.services.activity_service import activity_service
+
+                ev_type = event.get("type", "UnknownEvent")
+                payload = event.get("payload", {}) if isinstance(event.get("payload"), dict) else {}
+                actor_dict = event.get("actor", {}) if isinstance(event.get("actor"), dict) else {}
+                actor_login = actor_dict.get("login") or self.username
+                action = payload.get("action")
+
+                if ev_type == "CreateEvent" and payload.get("ref_type") == "repository":
+                    logger.info("🎉 Newly created repository discovered via GitHub events: %s", repo_name)
+
+                # Persist event and guarantee repository record exists
+                await activity_service.record_generic_event(
+                    repo=repo_name,
+                    event_type=ev_type,
+                    actor=actor_login,
+                    action=action,
+                    summary=f"{ev_type} on {repo_name} by {actor_login}",
+                    raw_payload=event,
+                )
+
+                # If push event contains commits, persist them to commits table
+                if ev_type == "PushEvent" and payload.get("commits"):
+                    await activity_service.record_commit_activity(
+                        repo=repo_name,
+                        actor=actor_login,
+                        branch=payload.get("ref", "").replace("refs/heads/", "") or "main",
+                        commits=payload.get("commits"),
+                        notify_discord=False,  # Already notified above
+                    )
+            except Exception as exc:
+                logger.error("Event persistence note for %s: %s", repo_name, exc)
 
         logger.info(
             "Profile monitor for @%s processed %d new events (dispatched %d alerts).",

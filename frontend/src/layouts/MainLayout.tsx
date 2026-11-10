@@ -12,7 +12,7 @@ interface MainLayoutProps {
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
   children,
-  currentRepo = 'apache/spark',
+  currentRepo = '',
   wsConnected = true,
   onRefreshAll,
   isRefreshing = false,

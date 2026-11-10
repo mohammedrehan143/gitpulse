@@ -13,6 +13,17 @@ import {
   PRReviewDelayInsights,
   PRReviewPredictRequest,
   PRReviewPredictResponse,
+  RepoStatsResponse,
+  PullRequestsResponse,
+  IssuesResponse,
+  ContributorsResponse,
+  SyncRepositoryResponse,
+  ReconciliationResponse,
+  RepositoryAIOverviewResponse,
+  PRIntelligenceResponse,
+  DeveloperIntelligenceResponse,
+  TeamReportResponse,
+  AIAssistantChatResponse,
 } from '../types';
 
 export function getApiBaseUrl(): string {
@@ -48,7 +59,7 @@ export function getWsBaseUrl(owner: string, repo: string): string {
     return `${protocol}//${window.location.host}/api/v1/ws/repos/${owner}/${repo}`;
   }
 
-  return `ws://localhost:8000/api/v1/ws/repos/${owner}/${repo}`;
+  return `ws://127.0.0.1:8000/api/v1/ws/repos/${owner}/${repo}`;
 }
 
 export async function fetchDiscoveredRepositories(): Promise<RepositoriesResponse> {
@@ -105,6 +116,85 @@ export async function fetchAIInsights(
   const res = await fetch(url, { method: 'POST' });
   if (!res.ok) {
     throw new Error(`Failed to generate AI insights: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchRepositoryStats(
+  owner: string,
+  repo: string
+): Promise<RepoStatsResponse> {
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/stats`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch repository stats: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchRepositoryPullRequests(
+  owner: string,
+  repo: string,
+  state = 'all',
+  limit = 20,
+  offset = 0
+): Promise<PullRequestsResponse> {
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/pulls?state=${state}&limit=${limit}&offset=${offset}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch pull requests: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchRepositoryIssues(
+  owner: string,
+  repo: string,
+  state = 'all',
+  limit = 20,
+  offset = 0
+): Promise<IssuesResponse> {
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/issues?state=${state}&limit=${limit}&offset=${offset}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch issues: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchRepositoryContributors(
+  owner: string,
+  repo: string
+): Promise<ContributorsResponse> {
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/contributors`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch contributors: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function syncRepository(
+  owner: string,
+  repo: string,
+  incremental = true
+): Promise<SyncRepositoryResponse> {
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/sync?incremental=${incremental}`;
+  const res = await fetch(url, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`Failed to trigger repository sync: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function reconcileRepository(
+  owner: string,
+  repo: string
+): Promise<ReconciliationResponse> {
+  const url = `${getApiBaseUrl()}/repos/${owner}/${repo}/reconcile`;
+  const res = await fetch(url, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`Failed to reconcile repository: ${res.statusText}`);
   }
   return res.json();
 }
@@ -247,6 +337,79 @@ export async function sendKeepAlivePulse(triggerSync = false): Promise<KeepAlive
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Keep-alive pulse request failed: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+
+export async function fetchRepositoryAIOverview(
+  owner: string,
+  repo: string,
+  timeframe = '30d',
+  refresh = false
+): Promise<RepositoryAIOverviewResponse> {
+  const url = `${getApiBaseUrl()}/ai/repos/${owner}/${repo}/overview?timeframe=${timeframe}&refresh=${refresh}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch AI repository overview: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchPRIntelligence(
+  owner: string,
+  repo: string,
+  prNumber: number,
+  refresh = false
+): Promise<PRIntelligenceResponse> {
+  const url = `${getApiBaseUrl()}/ai/repos/${owner}/${repo}/prs/${prNumber}?refresh=${refresh}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch PR intelligence: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchDeveloperIntelligence(
+  owner: string,
+  repo: string,
+  developer: string,
+  refresh = false
+): Promise<DeveloperIntelligenceResponse> {
+  const url = `${getApiBaseUrl()}/ai/repos/${owner}/${repo}/developers/${developer}?refresh=${refresh}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch developer intelligence: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchTeamAIReport(
+  owner: string,
+  repo: string,
+  timeframe = '7d',
+  refresh = false
+): Promise<TeamReportResponse> {
+  const url = `${getApiBaseUrl()}/ai/repos/${owner}/${repo}/team-report?timeframe=${timeframe}&refresh=${refresh}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch team AI report: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function askAIEngineeringAssistant(
+  question: string,
+  targetRepo?: string
+): Promise<AIAssistantChatResponse> {
+  const url = `${getApiBaseUrl()}/ai/assistant/chat`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, target_repo: targetRepo || null }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to query AI assistant: ${res.statusText}`);
   }
   return res.json();
 }

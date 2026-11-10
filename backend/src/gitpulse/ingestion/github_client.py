@@ -206,6 +206,34 @@ class GitHubClient:
                 logger.error("Network error fetching commits for %s/%s: %s", owner, repo, exc)
                 return []
 
+    async def fetch_commit_details(
+        self,
+        owner: str,
+        repo: str,
+        sha: str,
+    ) -> dict[str, Any] | None:
+        """Fetches detailed commit information including lines added, lines deleted, and files."""
+        if (
+            self.rate_limit_remaining is not None
+            and self.rate_limit_remaining <= self.rate_limit_buffer
+        ):
+            return None
+
+        url = f"{self.base_url}/repos/{owner}/{repo}/commits/{sha}"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                resp = await client.get(url, headers=self._get_headers())
+                self._update_rate_limits(resp.headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data if isinstance(data, dict) else None
+                return None
+            except httpx.RequestError as exc:
+                logger.error(
+                    "Network error fetching commit %s for %s/%s: %s", sha, owner, repo, exc
+                )
+                return None
+
     async def fetch_repository_pull_requests(
         self,
         owner: str,
@@ -323,6 +351,41 @@ class GitHubClient:
                 return []
             except httpx.RequestError as exc:
                 logger.error("Network error fetching issues for %s/%s: %s", owner, repo, exc)
+                return []
+
+    async def fetch_repository_contributors(
+        self,
+        owner: str,
+        repo: str,
+        page: int = 1,
+        per_page: int = 100,
+    ) -> list[dict[str, Any]]:
+        """Fetches active contributors with contribution metrics for a repository."""
+        if (
+            self.rate_limit_remaining is not None
+            and self.rate_limit_remaining <= self.rate_limit_buffer
+        ):
+            return await self.fetch_synthetic_contributors(owner, repo)
+
+        url = f"{self.base_url}/repos/{owner}/{repo}/contributors"
+        params: dict[str, Any] = {"page": page, "per_page": per_page}
+
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            try:
+                resp = await client.get(url, headers=self._get_headers(), params=params)
+                self._update_rate_limits(resp.headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data if isinstance(data, list) else []
+                logger.warning(
+                    "GitHub API /contributors returned status %d for %s/%s",
+                    resp.status_code,
+                    owner,
+                    repo,
+                )
+                return []
+            except httpx.RequestError as exc:
+                logger.error("Network error fetching contributors for %s/%s: %s", owner, repo, exc)
                 return []
 
     async def fetch_user_events(
@@ -571,7 +634,9 @@ class GitHubClient:
 
         prs: list[dict[str, Any]] = []
         base_time = datetime(2026, 10, 26, 12, 0, 0, tzinfo=UTC)
-        rng = random.Random(hash(f"{owner}/{repo}") % 10000)
+        repo_hash = abs(hash(f"{owner}/{repo}")) % 100000
+        rng = random.Random(repo_hash)
+        id_base = 80000000 + repo_hash * 1000
 
         for i in range(1, 46):
             created_days_ago = rng.uniform(1.0, 50.0)
@@ -593,7 +658,7 @@ class GitHubClient:
 
             prs.append(
                 {
-                    "id": 800000 + i,
+                    "id": id_base + i,
                     "number": 200 + i,
                     "title": f"feat({repo}): PR #{200 + i} improve performance and data ingestion pipeline",
                     "body": f"Refactored data layer and added unit tests for PR #{200 + i}.",
@@ -619,7 +684,9 @@ class GitHubClient:
 
         issues: list[dict[str, Any]] = []
         base_time = datetime(2026, 10, 26, 12, 0, 0, tzinfo=UTC)
-        rng = random.Random(hash(f"{owner}/{repo}_issues") % 10000)
+        repo_hash = abs(hash(f"{owner}/{repo}_issues")) % 100000
+        rng = random.Random(repo_hash)
+        id_base = 70000000 + repo_hash * 1000
 
         label_pool = [
             ["bug", "critical"],
@@ -644,7 +711,7 @@ class GitHubClient:
 
             issues.append(
                 {
-                    "id": 700000 + i,
+                    "id": id_base + i,
                     "number": 100 + i,
                     "title": f"Issue #{100 + i}: {selected_labels[0].capitalize()} in {repo} streaming event parser",
                     "body": f"Detailed description for issue #{100 + i} with stacktrace and reproduction steps.",
@@ -658,3 +725,29 @@ class GitHubClient:
                 }
             )
         return issues
+
+    async def fetch_synthetic_contributors(self, owner: str, repo: str) -> list[dict[str, Any]]:
+        """Generates realistic synthetic contributors for testing or quota fallback."""
+        return [
+            {
+                "id": 10001,
+                "login": "octocat",
+                "avatar_url": "https://avatars.githubusercontent.com/u/583231",
+                "html_url": "https://github.com/octocat",
+                "contributions": 142,
+            },
+            {
+                "id": 10002,
+                "login": "core-architect",
+                "avatar_url": "https://avatars.githubusercontent.com/u/1",
+                "html_url": "https://github.com/core-architect",
+                "contributions": 89,
+            },
+            {
+                "id": 10003,
+                "login": "stream-engineer",
+                "avatar_url": "https://avatars.githubusercontent.com/u/2",
+                "html_url": "https://github.com/stream-engineer",
+                "contributions": 47,
+            },
+        ]

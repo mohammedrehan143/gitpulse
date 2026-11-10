@@ -33,3 +33,13 @@ services:
         value: "60"
       - key: GITHUB_TARGET_REPOS
         value: "apache/spark,fastapi/fastapi,facebook/react"
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false

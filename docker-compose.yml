@@ -95,7 +95,13 @@ services:
       - POSTGRES_DB=gitpulse
       - POSTGRES_USER=gitpulse_admin
       - POSTGRES_PASSWORD=gitpulse_secure_password
+      - DATABASE_URL=postgresql+asyncpg://gitpulse_admin:gitpulse_secure_password@postgres:5432/gitpulse
       - REDIS_URL=redis://redis:6379/0
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-120b}
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,7 +109,7 @@ services:
       - gitpulse-network
 
   # ----------------------------------------------------------------------------
-  # Frontend Application (React + Vite)
+  # Frontend Application (React + Vite served via Nginx)
   # ----------------------------------------------------------------------------
   frontend:
     build:
@@ -112,9 +118,9 @@ services:
     container_name: gitpulse-frontend
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "5173:80"
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+      - VITE_API_BASE_URL=/api/v1
     depends_on:
       - backend
     networks:

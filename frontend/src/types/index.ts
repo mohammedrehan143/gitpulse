@@ -235,4 +235,234 @@ export interface PRReviewDelayInsights {
   };
 }
 
+export interface SyncCheckpointItem {
+  resource_type: string;
+  status: string;
+  last_item_id?: string | null;
+  last_checkpoint_timestamp?: string | null;
+  records_synced: number;
+}
+
+export interface RepoStatsResponse {
+  repository: string;
+  total_commits: number;
+  open_pull_requests: number;
+  merged_pull_requests: number;
+  closed_pull_requests: number;
+  open_issues: number;
+  closed_issues: number;
+  total_contributors: number;
+  avg_pr_cycle_time_hours: number;
+  total_lines_added: number;
+  total_lines_deleted: number;
+  churn_rate: number;
+  last_synced_at?: string | null;
+  monitoring_status: string;
+  checkpoints: SyncCheckpointItem[];
+}
+
+export interface PullRequestItem {
+  id: number;
+  github_id: number;
+  number: number;
+  title: string;
+  state: string;
+  author_login: string;
+  created_at: string;
+  updated_at?: string | null;
+  closed_at?: string | null;
+  merged_at?: string | null;
+  first_reviewed_at?: string | null;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  review_comments_count: number;
+}
+
+export interface PullRequestsResponse {
+  repository: string;
+  total_count: number;
+  limit: number;
+  offset: number;
+  pull_requests: PullRequestItem[];
+}
+
+export interface IssueItem {
+  id: number;
+  github_id: number;
+  number: number;
+  title: string;
+  state: string;
+  author_login: string;
+  labels: string[];
+  comments_count: number;
+  created_at: string;
+  updated_at?: string | null;
+  closed_at?: string | null;
+}
+
+export interface IssuesResponse {
+  repository: string;
+  total_count: number;
+  limit: number;
+  offset: number;
+  issues: IssueItem[];
+}
+
+export interface ContributorItem {
+  id: number;
+  login: string;
+  name?: string | null;
+  avatar_url?: string | null;
+  html_url?: string | null;
+  contributions_count: number;
+  commits_count: number;
+  prs_count: number;
+  issues_count: number;
+  first_contributed_at?: string | null;
+  last_contributed_at?: string | null;
+}
+
+export interface ContributorsResponse {
+  repository: string;
+  total_count: number;
+  contributors: ContributorItem[];
+}
+
+export interface SyncRepositoryResponse {
+  status: string;
+  pipeline_run_id?: number | null;
+  target_repo: string;
+  records_processed: number;
+  records_failed: number;
+  duration_seconds: number;
+  error_message?: string | null;
+}
+
+export interface ReconciliationResponse {
+  repository: string;
+  status: string;
+  reconciled_at: string;
+  commits: Record<string, unknown>;
+  pull_requests: Record<string, unknown>;
+  issues: Record<string, unknown>;
+  contributors: Record<string, unknown>;
+  reviews: Record<string, unknown>;
+  metrics_recalculated: boolean;
+}
+
+// -----------------------------------------------------------------------------
+// Groq AI Engineering Intelligence Types
+// -----------------------------------------------------------------------------
+
+export interface RepositoryAIOverviewResponse {
+  repository: string;
+  timeframe_days: number;
+  data_freshness: string;
+  source: string;
+  verified_facts: {
+    total_commits: number;
+    active_authors_count: number;
+    lines_added: number;
+    lines_deleted: number;
+    code_churn_rate: number;
+    inactive_days: number;
+    open_prs_count: number;
+    merged_prs_count: number;
+    closed_prs_count: number;
+    avg_pr_cycle_time_hours: number;
+    long_running_prs_count: number;
+    open_issues_count: number;
+    closed_issues_count: number;
+    tracked_contributors_count: number;
+  };
+  health_summary: string;
+  activity_analysis: string;
+  inactive_periods_detected: string;
+  unusual_patterns: string[];
+  recent_progress_summary: string;
+  strategic_recommendations: string[];
+  ai_interpretations: string[];
+  missing_or_unavailable: string[];
+  cached: boolean;
+}
+
+export interface PRIntelligenceResponse {
+  repository: string;
+  number: number;
+  title: string;
+  state: string;
+  author: string;
+  source: string;
+  verified_metrics: {
+    additions: number;
+    deletions: number;
+    total_changes: number;
+    changed_files: number;
+    review_comments_count: number;
+    reviews_count: number;
+  };
+  pr_summary: string;
+  risk_level: 'LOW' | 'MEDIUM' | 'HIGH';
+  risk_factors: string[];
+  review_activity_analysis: string;
+  long_running_flag: boolean;
+  recommendations: string[];
+  ai_interpretations: string[];
+  missing_or_unavailable: string[];
+  cached: boolean;
+}
+
+export interface DeveloperIntelligenceResponse {
+  repository: string;
+  developer: string;
+  source: string;
+  verified_metrics: {
+    total_contributions: number;
+    commits_count: number;
+    prs_authored_count: number;
+    prs_merged_count: number;
+    lines_added: number;
+    lines_deleted: number;
+    first_active: string | null;
+    last_active: string | null;
+  };
+  contribution_summary: string;
+  commit_and_pr_patterns: string;
+  contribution_trends: string;
+  evidence_notes: string[];
+  ai_interpretations: string[];
+  missing_or_unavailable: string[];
+  cached: boolean;
+}
+
+export interface TeamReportResponse {
+  repository: string;
+  timeframe_days: number;
+  data_freshness: string;
+  source: string;
+  weekly_report: string;
+  contribution_distribution_analysis: string;
+  review_bottlenecks: string[];
+  collaboration_patterns: string;
+  team_recommendations: string[];
+  ai_interpretations: string[];
+  missing_or_unavailable: string[];
+  cached: boolean;
+}
+
+export interface AIAssistantChatResponse {
+  question: string;
+  target_repo: string | null;
+  source: string;
+  answer: string;
+  verified_facts: Record<string, unknown>;
+  calculated_metrics: Record<string, unknown>;
+  ai_interpretations: string[];
+  missing_or_unavailable: string[];
+  timeframe: string;
+  data_freshness: string;
+}
+
+
 

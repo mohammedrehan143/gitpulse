@@ -25,6 +25,15 @@ class PRReviewDelayAnalyzer:
         self.models_dir = Path(models_dir or Path(__file__).resolve().parents[3] / "models")
         self.models_dir.mkdir(parents=True, exist_ok=True)
 
+    @staticmethod
+    def _parse_creation_time(c_at_str: Any, is_training: bool) -> datetime | None:
+        if c_at_str:
+            try:
+                return datetime.fromisoformat(str(c_at_str).replace("Z", "+00:00"))
+            except Exception:
+                pass
+        return None if is_training else datetime.now(UTC)
+
     @classmethod
     def extract_features(
         cls,
@@ -42,13 +51,10 @@ class PRReviewDelayAnalyzer:
         sorted_records = sorted(pr_records, key=lambda x: str(x.get("created_at") or ""))
 
         for idx, rec in enumerate(sorted_records):
-            c_at_str = rec.get("created_at")
-            r_at_str = rec.get("first_reviewed_at")
-
-            try:
-                c_dt = datetime.fromisoformat(str(c_at_str).replace("Z", "+00:00"))
-            except Exception:
+            c_dt = cls._parse_creation_time(rec.get("created_at"), is_training)
+            if c_dt is None:
                 continue
+            r_at_str = rec.get("first_reviewed_at")
 
             delay_hours: float | None = None
             if r_at_str:

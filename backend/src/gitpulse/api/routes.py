@@ -18,24 +18,34 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from backend.src.gitpulse.api.schemas import (
     AIGenerateRequest,
     AIGenerateResponse,
     AIInsightsResponse,
+    ContributorItem,
+    ContributorsResponse,
     DiscoveredRepositoryItem,
     EventItem,
     EventsResponse,
     HealthResponse,
+    IssueItem,
+    IssuesResponse,
     KeepAliveResponse,
+    PullRequestItem,
+    PullRequestsResponse,
+    ReconciliationResponse,
     RefreshRepositoriesResponse,
     RepositoriesResponse,
     RepositoryRef,
+    RepoStatsResponse,
     RepoSubscribersResponse,
     SubscribeRepoRequest,
     SubscribeRepoResponse,
     SubscriberItem,
+    SyncCheckpointItem,
+    SyncRepositoryResponse,
     TimelinePoint,
     UniversalCommitNotificationRequest,
     UniversalCommitNotificationResponse,
@@ -51,14 +61,24 @@ from backend.src.gitpulse.api.schemas import (
 from backend.src.gitpulse.common.config import settings
 from backend.src.gitpulse.common.logging import logger
 from backend.src.gitpulse.ingestion.github_client import GitHubClient
+from backend.src.gitpulse.ingestion.pipeline import DataIngestionPipeline
 from backend.src.gitpulse.ingestion.runner import _persist_events_to_db
 from backend.src.gitpulse.services.ai_service import GroqAIService
 from backend.src.gitpulse.services.notification_service import NotificationService
+from backend.src.gitpulse.services.reconciliation_service import DataReconciliationService
 from backend.src.gitpulse.services.repository_service import RepositoryService
 from backend.src.gitpulse.services.subscription_service import subscription_service
 from backend.src.gitpulse.services.webhook_service import webhook_service
 from backend.src.gitpulse.storage.database import AsyncSessionLocal
-from backend.src.gitpulse.storage.models import GitHubEvent, Repository
+from backend.src.gitpulse.storage.models import (
+    CommitRecord,
+    ContributorRecord,
+    GitHubEvent,
+    IssueRecord,
+    PullRequestRecord,
+    Repository,
+    SyncCheckpoint,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["analytics"])
 
@@ -192,93 +212,6 @@ async def get_repository_ai_insights(owner: str, repo: str) -> AIInsightsRespons
     )
 
 
-def _process_event_records(
-    events: list[GitHubEvent],
-    daily_commits: dict[str, int],
-    daily_prs_opened: dict[str, int],
-    daily_prs_merged: dict[str, int],
-    daily_authors: dict[str, set[str]],
-    daily_lines: dict[str, int],
-) -> None:
-    for e in events:
-        if not e.created_at:
-            continue
-        day_str = e.created_at.strftime("%Y-%m-%d")
-        payload = e.raw_payload if isinstance(e.raw_payload, dict) else {}
-        daily_authors[day_str].add(e.actor_login or "contributor")
-
-        if e.event_type == "PushEvent":
-            commits = payload.get("commits", [])
-            cnt = len(commits) if isinstance(commits, list) and commits else 1
-            daily_commits[day_str] += cnt
-            daily_lines[day_str] += cnt * 38
-        elif e.event_type == "PullRequestEvent":
-            action = e.action or payload.get("action")
-            if action == "opened":
-                daily_prs_opened[day_str] += 1
-            elif action == "closed" and (payload.get("pull_request") or {}).get("merged"):
-                daily_prs_merged[day_str] += 1
-        elif e.event_type in ("CreateEvent", "CommitCommentEvent"):
-            daily_commits[day_str] += 1
-            daily_lines[day_str] += 25
-
-
-def _process_commits(
-    commits: list[dict[str, Any]],
-    cutoff: datetime,
-    daily_commits: dict[str, int],
-    daily_authors: dict[str, set[str]],
-    daily_lines: dict[str, int],
-) -> None:
-    for c in commits:
-        c_meta = c.get("commit", {})
-        committer = c_meta.get("committer") or c_meta.get("author") or {}
-        date_str = committer.get("date")
-        if not date_str:
-            continue
-        try:
-            c_dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-            if c_dt >= cutoff:
-                c_day = c_dt.strftime("%Y-%m-%d")
-                daily_commits[c_day] += 1
-                author = (c.get("author") or {}).get("login") or committer.get("name") or "author"
-                daily_authors[c_day].add(author)
-                daily_lines[c_day] += 42
-        except Exception:
-            pass
-
-
-def _process_pull_requests(
-    prs: list[dict[str, Any]],
-    cutoff: datetime,
-    daily_prs_opened: dict[str, int],
-    daily_prs_merged: dict[str, int],
-) -> list[float]:
-    cycle_times: list[float] = []
-    for pr in prs:
-        c_at, m_at = pr.get("created_at"), pr.get("merged_at")
-        if c_at:
-            try:
-                pr_dt = datetime.fromisoformat(c_at.replace("Z", "+00:00"))
-                if pr_dt >= cutoff:
-                    daily_prs_opened[pr_dt.strftime("%Y-%m-%d")] += 1
-            except Exception:
-                pass
-        if m_at:
-            try:
-                m_dt = datetime.fromisoformat(m_at.replace("Z", "+00:00"))
-                if m_dt >= cutoff:
-                    daily_prs_merged[m_dt.strftime("%Y-%m-%d")] += 1
-                if c_at:
-                    c_dt = datetime.fromisoformat(c_at.replace("Z", "+00:00"))
-                    diff = (m_dt - c_dt).total_seconds() / 3600.0
-                    if 0 < diff < 720:
-                        cycle_times.append(diff)
-            except Exception:
-                pass
-    return cycle_times
-
-
 def _generate_timeline_buckets(
     days: int,
     granularity: str,
@@ -302,10 +235,88 @@ def _generate_timeline_buckets(
                 pr_opened_count=daily_prs_opened.get(day_str, 0),
                 pr_merged_count=daily_prs_merged.get(day_str, 0),
                 active_authors=len(daily_authors.get(day_str, set())),
-                net_lines=daily_lines.get(day_str, c_count * 35),
+                net_lines=daily_lines.get(day_str, 0),
             )
         )
     return timeline_points
+
+
+async def _fetch_and_aggregate_commits(
+    session,
+    repo_id: int,
+    cutoff: datetime,
+    owner: str,
+    repo: str,
+    daily_commits: dict[str, int],
+    daily_lines: dict[str, int],
+    daily_authors: dict[str, set[str]],
+) -> tuple[int, int]:
+    c_stmt = select(CommitRecord).where(
+        CommitRecord.repo_id == repo_id,
+        CommitRecord.committed_at >= cutoff,
+    )
+    commits = list((await session.execute(c_stmt)).scalars().all())
+
+    # If 0 commits in DB, backfill 1 page of commits & PRs on first connect
+    if not commits:
+        try:
+            pipeline = DataIngestionPipeline()
+            await pipeline.ingest_commits(owner, repo, incremental=False, max_pages=1)
+            commits = list((await session.execute(c_stmt)).scalars().all())
+        except Exception as exc:
+            logger.debug("Initial backfill skipped: %s", exc)
+
+    total_added, total_deleted = 0, 0
+    for c in commits:
+        if c.committed_at:
+            c_day = c.committed_at.strftime("%Y-%m-%d")
+            daily_commits[c_day] += 1
+            daily_lines[c_day] += c.lines_added
+            total_added += c.lines_added
+            total_deleted += c.lines_deleted
+            if c.author_name:
+                daily_authors[c_day].add(c.author_name)
+    return total_added, total_deleted
+
+
+async def _fetch_and_aggregate_prs(
+    session,
+    repo_id: int,
+    cutoff: datetime,
+    owner: str,
+    repo: str,
+    daily_prs_opened: dict[str, int],
+    daily_prs_merged: dict[str, int],
+    daily_authors: dict[str, set[str]],
+) -> list[float]:
+    pr_stmt = select(PullRequestRecord).where(
+        PullRequestRecord.repo_id == repo_id,
+        PullRequestRecord.created_at >= cutoff,
+    )
+    prs = list((await session.execute(pr_stmt)).scalars().all())
+    if not prs:
+        try:
+            pipeline = DataIngestionPipeline()
+            await pipeline.ingest_pull_requests(owner, repo, incremental=False, max_pages=1)
+            prs = list((await session.execute(pr_stmt)).scalars().all())
+        except Exception as exc:
+            logger.debug("Initial PR backfill skipped: %s", exc)
+
+    cycle_times: list[float] = []
+    for pr in prs:
+        if pr.created_at:
+            p_day = pr.created_at.strftime("%Y-%m-%d")
+            daily_prs_opened[p_day] += 1
+            if pr.author_login:
+                daily_authors[p_day].add(pr.author_login)
+        if pr.merged_at and pr.merged_at >= cutoff:
+            m_day = pr.merged_at.strftime("%Y-%m-%d")
+            daily_prs_merged[m_day] += 1
+            if pr.created_at:
+                hrs = (pr.merged_at - pr.created_at).total_seconds() / 3600.0
+                if 0 < hrs < 720:
+                    cycle_times.append(hrs)
+    return cycle_times
 
 
 @router.get("/repos/{owner}/{repo}/velocity", response_model=VelocityResponse)
@@ -315,7 +326,7 @@ async def get_repository_velocity(
     timeframe: str = Query("30d", pattern="^(7d|14d|30d|90d|1y)$"),
     granularity: str = Query("day", pattern="^(hour|day|week)$"),
 ) -> VelocityResponse:
-    """Retrieves real aggregated commit velocity and cycle time metrics from GitHub and database."""
+    """Retrieves real aggregated commit velocity and cycle time metrics from database."""
     full_name = f"{owner}/{repo}"
     repo_service = RepositoryService()
     repo_info = await repo_service.ensure_repository_tracked(owner, repo)
@@ -324,51 +335,46 @@ async def get_repository_velocity(
     days = multiplier_map.get(timeframe, 30)
     cutoff = datetime.now(UTC) - timedelta(days=days)
 
-    client = GitHubClient()
-    events_from_db: list[GitHubEvent] = []
-    try:
-        async with AsyncSessionLocal() as session:
-            stmt = (
-                select(GitHubEvent)
-                .join(Repository, GitHubEvent.repo_id == Repository.id)
-                .where(Repository.full_name == full_name)
-                .where(GitHubEvent.created_at >= cutoff)
-            )
-            result = await session.execute(stmt)
-            events_from_db = list(result.scalars().all())
-    except Exception as exc:
-        logger.debug("Database event lookup error for %s: %s", full_name, exc)
-
-    live_commits: list[dict[str, Any]] = []
-    live_prs: list[dict[str, Any]] = []
-    if len(events_from_db) < 5:
-        try:
-            live_events = await client.fetch_all_recent_events(owner, repo, max_pages=3)
-            if live_events:
-                await _persist_events_to_db(owner, repo, live_events)
-            live_commits = await client.fetch_repository_commits(owner, repo, per_page=100)
-            live_prs = await client.fetch_repository_pull_requests(
-                owner, repo, state="all", per_page=50
-            )
-        except Exception as exc:
-            logger.warning("Could not fetch live GitHub data for velocity calculation: %s", exc)
-
     daily_commits: dict[str, int] = defaultdict(int)
     daily_prs_opened: dict[str, int] = defaultdict(int)
     daily_prs_merged: dict[str, int] = defaultdict(int)
     daily_authors: dict[str, set[str]] = defaultdict(set)
     daily_lines: dict[str, int] = defaultdict(int)
+    cycle_times: list[float] = []
+    total_added = 0
+    total_deleted = 0
 
-    _process_event_records(
-        events_from_db,
-        daily_commits,
-        daily_prs_opened,
-        daily_prs_merged,
-        daily_authors,
-        daily_lines,
-    )
-    _process_commits(live_commits, cutoff, daily_commits, daily_authors, daily_lines)
-    cycle_times = _process_pull_requests(live_prs, cutoff, daily_prs_opened, daily_prs_merged)
+    async with AsyncSessionLocal() as session:
+        stmt = select(Repository).where(Repository.full_name == full_name)
+        res = await session.execute(stmt)
+        repo_obj = res.scalar_one_or_none()
+        repo_id = repo_obj.id if repo_obj else None
+
+        if repo_id:
+            total_added, total_deleted = await _fetch_and_aggregate_commits(
+                session, repo_id, cutoff, owner, repo, daily_commits, daily_lines, daily_authors
+            )
+            cycle_times = await _fetch_and_aggregate_prs(
+                session,
+                repo_id,
+                cutoff,
+                owner,
+                repo,
+                daily_prs_opened,
+                daily_prs_merged,
+                daily_authors,
+            )
+
+            # Also check raw events for contributor activities
+            evt_stmt = select(GitHubEvent).where(
+                GitHubEvent.repo_id == repo_id,
+                GitHubEvent.created_at >= cutoff,
+            )
+            events = list((await session.execute(evt_stmt)).scalars().all())
+            for e in events:
+                if e.created_at and e.actor_login:
+                    e_day = e.created_at.strftime("%Y-%m-%d")
+                    daily_authors[e_day].add(e.actor_login)
 
     timeline_points = _generate_timeline_buckets(
         days,
@@ -384,16 +390,14 @@ async def get_repository_velocity(
     all_authors: set[str] = set()
     for s in daily_authors.values():
         all_authors.update(s)
-    active_contributors = len(all_authors) or (1 if total_commits > 0 else 0)
+    active_contributors = len(all_authors)
 
-    lines_added = sum(p.net_lines for p in timeline_points)
-    lines_deleted = int(lines_added * 0.32)
     churn = (
-        round(lines_deleted / (lines_added + lines_deleted), 2)
-        if (lines_added + lines_deleted) > 0
+        round(total_deleted / (total_added + total_deleted), 2)
+        if (total_added + total_deleted) > 0
         else 0.0
     )
-    avg_cycle = round(sum(cycle_times) / len(cycle_times), 1) if cycle_times else 14.5
+    avg_cycle = round(sum(cycle_times) / len(cycle_times), 1) if cycle_times else 0.0
 
     return VelocityResponse(
         repository=RepositoryRef(
@@ -408,11 +412,372 @@ async def get_repository_velocity(
             total_commits=total_commits,
             active_contributors=active_contributors,
             avg_pr_cycle_time_hours=avg_cycle,
-            lines_added=lines_added,
-            lines_deleted=lines_deleted,
+            lines_added=total_added,
+            lines_deleted=total_deleted,
             churn_rate=churn,
         ),
         timeline=timeline_points,
+    )
+
+
+@router.get("/repos/{owner}/{repo}/stats", response_model=RepoStatsResponse)
+async def get_repository_stats(owner: str, repo: str) -> RepoStatsResponse:
+    """Retrieves full repository statistics, activity counters, and synchronization checkpoints."""
+    full_name = f"{owner}/{repo}"
+    repo_service = RepositoryService()
+    await repo_service.ensure_repository_tracked(owner, repo)
+
+    async with AsyncSessionLocal() as session:
+        repo_obj = (
+            await session.execute(select(Repository).where(Repository.full_name == full_name))
+        ).scalar_one_or_none()
+        if not repo_obj:
+            raise HTTPException(status_code=404, detail=f"Repository {full_name} not found")
+
+        repo_id = repo_obj.id
+
+        total_commits = (
+            await session.execute(
+                select(func.count(CommitRecord.id)).where(CommitRecord.repo_id == repo_id)
+            )
+        ).scalar() or 0
+
+        open_prs = (
+            await session.execute(
+                select(func.count(PullRequestRecord.id)).where(
+                    PullRequestRecord.repo_id == repo_id,
+                    PullRequestRecord.state == "open",
+                )
+            )
+        ).scalar() or 0
+
+        merged_prs = (
+            await session.execute(
+                select(func.count(PullRequestRecord.id)).where(
+                    PullRequestRecord.repo_id == repo_id,
+                    PullRequestRecord.merged_at.is_not(None),
+                )
+            )
+        ).scalar() or 0
+
+        closed_prs = (
+            await session.execute(
+                select(func.count(PullRequestRecord.id)).where(
+                    PullRequestRecord.repo_id == repo_id,
+                    PullRequestRecord.state == "closed",
+                )
+            )
+        ).scalar() or 0
+
+        open_issues = (
+            await session.execute(
+                select(func.count(IssueRecord.id)).where(
+                    IssueRecord.repo_id == repo_id,
+                    IssueRecord.state == "open",
+                )
+            )
+        ).scalar() or 0
+
+        closed_issues = (
+            await session.execute(
+                select(func.count(IssueRecord.id)).where(
+                    IssueRecord.repo_id == repo_id,
+                    IssueRecord.state == "closed",
+                )
+            )
+        ).scalar() or 0
+
+        contributors_count = (
+            await session.execute(
+                select(func.count(ContributorRecord.id)).where(ContributorRecord.repo_id == repo_id)
+            )
+        ).scalar() or 0
+
+        lines_res = (
+            await session.execute(
+                select(
+                    func.coalesce(func.sum(CommitRecord.lines_added), 0),
+                    func.coalesce(func.sum(CommitRecord.lines_deleted), 0),
+                ).where(CommitRecord.repo_id == repo_id)
+            )
+        ).first()
+
+        total_lines_added = int(lines_res[0]) if lines_res else 0
+        total_lines_deleted = int(lines_res[1]) if lines_res else 0
+        churn = (
+            round(total_lines_deleted / (total_lines_added + total_lines_deleted), 2)
+            if (total_lines_added + total_lines_deleted) > 0
+            else 0.0
+        )
+
+        merged_pr_rows = (
+            await session.execute(
+                select(PullRequestRecord.created_at, PullRequestRecord.merged_at).where(
+                    PullRequestRecord.repo_id == repo_id,
+                    PullRequestRecord.merged_at.is_not(None),
+                )
+            )
+        ).all()
+
+        cycle_diffs = [
+            (m - c).total_seconds() / 3600.0
+            for c, m in merged_pr_rows
+            if c and m and (m - c).total_seconds() > 0
+        ]
+        avg_cycle = round(sum(cycle_diffs) / len(cycle_diffs), 1) if cycle_diffs else 0.0
+
+        cp_rows = (
+            (await session.execute(select(SyncCheckpoint).where(SyncCheckpoint.repo_id == repo_id)))
+            .scalars()
+            .all()
+        )
+
+        checkpoints = [
+            SyncCheckpointItem(
+                resource_type=cp.resource_type,
+                status=cp.status,
+                last_item_id=cp.last_item_id,
+                last_checkpoint_timestamp=(
+                    cp.last_checkpoint_timestamp.isoformat()
+                    if cp.last_checkpoint_timestamp
+                    else None
+                ),
+                records_synced=cp.records_synced,
+            )
+            for cp in cp_rows
+        ]
+
+        return RepoStatsResponse(
+            repository=full_name,
+            total_commits=total_commits,
+            open_pull_requests=open_prs,
+            merged_pull_requests=merged_prs,
+            closed_pull_requests=closed_prs,
+            open_issues=open_issues,
+            closed_issues=closed_issues,
+            total_contributors=contributors_count,
+            avg_pr_cycle_time_hours=avg_cycle,
+            total_lines_added=total_lines_added,
+            total_lines_deleted=total_lines_deleted,
+            churn_rate=churn,
+            last_synced_at=repo_obj.last_synced_at.isoformat() if repo_obj.last_synced_at else None,
+            monitoring_status=repo_obj.monitoring_status,
+            checkpoints=checkpoints,
+        )
+
+
+@router.get("/repos/{owner}/{repo}/pulls", response_model=PullRequestsResponse)
+async def get_repository_pull_requests(
+    owner: str,
+    repo: str,
+    state: str | None = Query(None, pattern="^(open|closed|all)$"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> PullRequestsResponse:
+    """Retrieves paginated pull request records directly from database storage."""
+    full_name = f"{owner}/{repo}"
+    async with AsyncSessionLocal() as session:
+        repo_obj = (
+            await session.execute(select(Repository).where(Repository.full_name == full_name))
+        ).scalar_one_or_none()
+        if not repo_obj:
+            raise HTTPException(status_code=404, detail=f"Repository {full_name} not found")
+
+        stmt = select(PullRequestRecord).where(PullRequestRecord.repo_id == repo_obj.id)
+        if state and state != "all":
+            stmt = stmt.where(PullRequestRecord.state == state)
+
+        total_count = (
+            await session.execute(select(func.count()).select_from(stmt.subquery()))
+        ).scalar() or 0
+
+        stmt = stmt.order_by(PullRequestRecord.created_at.desc()).offset(offset).limit(limit)
+        prs = (await session.execute(stmt)).scalars().all()
+
+        items = [
+            PullRequestItem(
+                id=pr.id,
+                github_id=pr.github_id,
+                number=pr.number,
+                title=pr.title,
+                state=pr.state,
+                author_login=pr.author_login,
+                created_at=pr.created_at.isoformat(),
+                updated_at=pr.updated_at.isoformat() if pr.updated_at else None,
+                closed_at=pr.closed_at.isoformat() if pr.closed_at else None,
+                merged_at=pr.merged_at.isoformat() if pr.merged_at else None,
+                first_reviewed_at=(
+                    pr.first_reviewed_at.isoformat() if pr.first_reviewed_at else None
+                ),
+                additions=pr.additions,
+                deletions=pr.deletions,
+                changed_files=pr.changed_files,
+                review_comments_count=pr.review_comments_count,
+            )
+            for pr in prs
+        ]
+
+        return PullRequestsResponse(
+            repository=full_name,
+            total_count=total_count,
+            limit=limit,
+            offset=offset,
+            pull_requests=items,
+        )
+
+
+@router.get("/repos/{owner}/{repo}/issues", response_model=IssuesResponse)
+async def get_repository_issues(
+    owner: str,
+    repo: str,
+    state: str | None = Query(None, pattern="^(open|closed|all)$"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> IssuesResponse:
+    """Retrieves paginated issue records directly from database storage."""
+    full_name = f"{owner}/{repo}"
+    async with AsyncSessionLocal() as session:
+        repo_obj = (
+            await session.execute(select(Repository).where(Repository.full_name == full_name))
+        ).scalar_one_or_none()
+        if not repo_obj:
+            raise HTTPException(status_code=404, detail=f"Repository {full_name} not found")
+
+        stmt = select(IssueRecord).where(IssueRecord.repo_id == repo_obj.id)
+        if state and state != "all":
+            stmt = stmt.where(IssueRecord.state == state)
+
+        total_count = (
+            await session.execute(select(func.count()).select_from(stmt.subquery()))
+        ).scalar() or 0
+
+        stmt = stmt.order_by(IssueRecord.created_at.desc()).offset(offset).limit(limit)
+        issues = (await session.execute(stmt)).scalars().all()
+
+        items = [
+            IssueItem(
+                id=iss.id,
+                github_id=iss.github_id,
+                number=iss.number,
+                title=iss.title,
+                state=iss.state,
+                author_login=iss.author_login,
+                labels=iss.labels or [],
+                comments_count=iss.comments_count,
+                created_at=iss.created_at.isoformat(),
+                updated_at=iss.updated_at.isoformat() if iss.updated_at else None,
+                closed_at=iss.closed_at.isoformat() if iss.closed_at else None,
+            )
+            for iss in issues
+        ]
+
+        return IssuesResponse(
+            repository=full_name,
+            total_count=total_count,
+            limit=limit,
+            offset=offset,
+            issues=items,
+        )
+
+
+@router.get("/repos/{owner}/{repo}/contributors", response_model=ContributorsResponse)
+async def get_repository_contributors(
+    owner: str,
+    repo: str,
+) -> ContributorsResponse:
+    """Retrieves all tracked contributors for a repository with exact contribution counts."""
+    full_name = f"{owner}/{repo}"
+    async with AsyncSessionLocal() as session:
+        repo_obj = (
+            await session.execute(select(Repository).where(Repository.full_name == full_name))
+        ).scalar_one_or_none()
+        if not repo_obj:
+            raise HTTPException(status_code=404, detail=f"Repository {full_name} not found")
+
+        stmt = (
+            select(ContributorRecord)
+            .where(ContributorRecord.repo_id == repo_obj.id)
+            .order_by(
+                ContributorRecord.contributions_count.desc(), ContributorRecord.commits_count.desc()
+            )
+        )
+        contribs = (await session.execute(stmt)).scalars().all()
+
+        if not contribs:
+            try:
+                pipeline = DataIngestionPipeline()
+                await pipeline.ingest_contributors(owner, repo, max_pages=1)
+                contribs = (await session.execute(stmt)).scalars().all()
+            except Exception as exc:
+                logger.debug("Automatic initial contributor fetch: %s", exc)
+
+        items = [
+            ContributorItem(
+                id=c.id,
+                login=c.login,
+                name=c.name,
+                avatar_url=c.avatar_url,
+                html_url=c.html_url,
+                contributions_count=c.contributions_count,
+                commits_count=c.commits_count,
+                prs_count=c.prs_count,
+                issues_count=c.issues_count,
+                first_contributed_at=(
+                    c.first_contributed_at.isoformat() if c.first_contributed_at else None
+                ),
+                last_contributed_at=(
+                    c.last_contributed_at.isoformat() if c.last_contributed_at else None
+                ),
+            )
+            for c in contribs
+        ]
+
+        return ContributorsResponse(
+            repository=full_name,
+            total_count=len(items),
+            contributors=items,
+        )
+
+
+@router.post("/repos/{owner}/{repo}/sync", response_model=SyncRepositoryResponse)
+async def sync_repository(
+    owner: str,
+    repo: str,
+    incremental: bool = Query(True),
+    max_pages: int = Query(2, ge=1, le=10),
+) -> SyncRepositoryResponse:
+    """Triggers an on-demand data pipeline synchronization run for a repository."""
+    pipeline = DataIngestionPipeline()
+    result = await pipeline.run_pipeline(owner, repo, incremental=incremental, max_pages=max_pages)
+    return SyncRepositoryResponse(
+        status=result["status"],
+        pipeline_run_id=result.get("pipeline_run_id"),
+        target_repo=result["target_repo"],
+        records_processed=result["records_processed"],
+        records_failed=result["records_failed"],
+        duration_seconds=result["duration_seconds"],
+        error_message=result.get("error_message"),
+    )
+
+
+@router.post("/repos/{owner}/{repo}/reconcile", response_model=ReconciliationResponse)
+async def reconcile_repository_data(
+    owner: str,
+    repo: str,
+) -> ReconciliationResponse:
+    """Audits and heals drift between GitHub and database for commits, PRs, issues, and contributors."""
+    recon_service = DataReconciliationService()
+    report = await recon_service.reconcile_repository(owner, repo)
+    return ReconciliationResponse(
+        repository=report["repository"],
+        status=report["status"],
+        reconciled_at=report["reconciled_at"],
+        commits=report["commits"],
+        pull_requests=report["pull_requests"],
+        issues=report["issues"],
+        contributors=report["contributors"],
+        reviews=report["reviews"],
+        metrics_recalculated=report["metrics_recalculated"],
     )
 
 
@@ -627,6 +992,102 @@ async def handle_github_webhook(
         if repo_github_id:
             await ws_manager.broadcast(str(repo_github_id), ws_event)
 
+    elif event_name in ("repository", "create"):
+        from backend.src.gitpulse.services.activity_service import activity_service
+
+        ref_type = parsed.get("ref_type", "repository" if event_name == "repository" else "branch")
+        ref_name = parsed.get("ref") or repo_name
+        action = parsed.get("action", "created")
+
+        await activity_service.record_generic_event(
+            repo=repo_name,
+            event_type="CreateEvent",
+            actor=sender_login,
+            action=action,
+            summary=f"New {ref_type} {action}: {ref_name} by {sender_login}",
+            raw_payload=parsed,
+            repo_metadata=repo_dict,
+            repo_github_id=repo_github_id,
+        )
+
+        notifier = NotificationService()
+        await notifier.send_discord_notification(
+            title=f"🌿 New {ref_type.capitalize()} Created: {repo_name}",
+            description=f"**{sender_login}** {action} {ref_type} `{ref_name}` in **[{repo_name}](https://github.com/{repo_name})**.",
+            color=0x38BDF8,
+        )
+
+    elif event_name == "pull_request":
+        from backend.src.gitpulse.services.activity_service import activity_service
+
+        pr_data = (
+            parsed.get("pull_request", {}) if isinstance(parsed.get("pull_request"), dict) else {}
+        )
+        pr_number = pr_data.get("number") or parsed.get("number", 0)
+        pr_title = pr_data.get("title", "Pull Request")
+        action = parsed.get("action", "opened")
+
+        await activity_service.record_generic_event(
+            repo=repo_name,
+            event_type="PullRequestEvent",
+            actor=sender_login,
+            action=action,
+            summary=f"PR #{pr_number} {action}: {pr_title}",
+            raw_payload=parsed,
+            repo_metadata=repo_dict,
+            repo_github_id=repo_github_id,
+        )
+
+        notifier = NotificationService()
+        await notifier.notify_git_pull(
+            repo_name=repo_name,
+            actor=sender_login,
+            action=action,
+            pr_number=pr_number,
+            pr_title=pr_title,
+            pr_url=pr_data.get("html_url"),
+        )
+
+    elif event_name == "issues":
+        from backend.src.gitpulse.services.activity_service import activity_service
+
+        issue_data = parsed.get("issue", {}) if isinstance(parsed.get("issue"), dict) else {}
+        issue_number = issue_data.get("number") or parsed.get("number", 0)
+        issue_title = issue_data.get("title", "Issue")
+        action = parsed.get("action", "opened")
+
+        await activity_service.record_generic_event(
+            repo=repo_name,
+            event_type="IssuesEvent",
+            actor=sender_login,
+            action=action,
+            summary=f"Issue #{issue_number} {action}: {issue_title}",
+            raw_payload=parsed,
+            repo_metadata=repo_dict,
+            repo_github_id=repo_github_id,
+        )
+
+        notifier = NotificationService()
+        await notifier.send_discord_notification(
+            title=f"📌 Issue {action.upper()}: #{issue_number} in {repo_name}",
+            description=f"**{sender_login}** {action} issue [#{issue_number} - {issue_title}]({issue_data.get('html_url')})",
+            color=0xF59E0B,
+        )
+
+    else:
+        from backend.src.gitpulse.services.activity_service import activity_service
+
+        await activity_service.record_generic_event(
+            repo=repo_name,
+            event_type=f"{event_name.capitalize()}Event",
+            actor=sender_login,
+            action=parsed.get("action"),
+            summary=f"GitHub {event_name} on {repo_name} by {sender_login}",
+            raw_payload=parsed,
+            repo_metadata=repo_dict,
+            repo_github_id=repo_github_id,
+        )
+
     # 6. Record processed delivery to ensure idempotency on future retries
     await webhook_service.record_delivery(
         delivery_id=effective_delivery_id,
@@ -723,24 +1184,31 @@ async def unsubscribe_from_repo(
 async def universal_push_notify(
     payload: UniversalPushNotificationRequest,
 ) -> UniversalPushNotificationResponse:
-    """Universal notification endpoint that sends rich Discord alerts for ANY pushed repository."""
-    notifier = NotificationService(discord_webhook_url=payload.discord_webhook_url)
+    """Universal notification endpoint that saves git push activity to DB and delivers alerts."""
+    from backend.src.gitpulse.services.activity_service import activity_service
+
     commits_list = payload.commits or []
     if not commits_list and payload.message:
         commits_list = [{"id": payload.sha or "head", "message": payload.message}]
 
-    delivered = await notifier.notify_git_push(
-        repo_name=payload.repo,
-        pusher=payload.pusher,
+    res = await activity_service.record_commit_activity(
+        repo=payload.repo,
+        actor=payload.pusher,
         branch=payload.branch,
+        sha=payload.sha or (commits_list[0].get("id") if commits_list else "head"),
+        message=payload.message
+        or (commits_list[0].get("message") if commits_list else "Push update"),
         commits=commits_list,
         compare_url=payload.compare_url,
+        discord_webhook_url=payload.discord_webhook_url,
+        notify_discord=True,
     )
+    delivered = res.get("delivered", False)
     return UniversalPushNotificationResponse(
-        status="SUCCESS" if delivered else "SKIPPED",
+        status="SUCCESS",
         delivered=delivered,
-        repository=payload.repo,
-        message="New git pushed",
+        repository=res.get("repository", payload.repo),
+        message="New git pushed and persisted to database",
     )
 
 
@@ -748,7 +1216,23 @@ async def universal_push_notify(
 async def universal_pull_notify(
     payload: UniversalPullNotificationRequest,
 ) -> UniversalPullNotificationResponse:
-    """Universal notification endpoint that sends rich Discord alerts for pull requests."""
+    """Universal notification endpoint that saves pull request to DB and sends Discord alerts."""
+    from backend.src.gitpulse.services.activity_service import activity_service
+
+    await activity_service.record_generic_event(
+        repo=payload.repo,
+        event_type="PullRequestEvent",
+        actor=payload.actor,
+        action=payload.action,
+        summary=f"PR #{payload.pr_number} {payload.action}: {payload.pr_title or ''}",
+        raw_payload={
+            "action": payload.action,
+            "number": payload.pr_number,
+            "title": payload.pr_title,
+            "html_url": payload.pr_url,
+        },
+    )
+
     notifier = NotificationService(discord_webhook_url=payload.discord_webhook_url)
     delivered = await notifier.notify_git_pull(
         repo_name=payload.repo,
@@ -759,10 +1243,10 @@ async def universal_pull_notify(
         pr_url=payload.pr_url,
     )
     return UniversalPullNotificationResponse(
-        status="SUCCESS" if delivered else "SKIPPED",
+        status="SUCCESS",
         delivered=delivered,
         repository=payload.repo,
-        message="New git pulled",
+        message="New git pulled and persisted to database",
     )
 
 
@@ -770,21 +1254,25 @@ async def universal_pull_notify(
 async def universal_commit_notify(
     payload: UniversalCommitNotificationRequest,
 ) -> UniversalCommitNotificationResponse:
-    """Universal notification endpoint that sends rich Discord alerts when a commit is registered."""
-    notifier = NotificationService(discord_webhook_url=payload.discord_webhook_url)
-    delivered = await notifier.notify_git_commit(
-        repo_name=payload.repo,
-        author=payload.author,
+    """Universal notification endpoint that saves commit to DB and sends rich Discord alerts."""
+    from backend.src.gitpulse.services.activity_service import activity_service
+
+    res = await activity_service.record_commit_activity(
+        repo=payload.repo,
+        actor=payload.author,
+        branch=payload.branch,
         sha=payload.sha,
         message=payload.message,
-        branch=payload.branch,
         commit_url=payload.commit_url,
+        discord_webhook_url=payload.discord_webhook_url,
+        notify_discord=True,
     )
+    delivered = res.get("delivered", False)
     return UniversalCommitNotificationResponse(
-        status="SUCCESS" if delivered else "SKIPPED",
+        status="SUCCESS",
         delivered=delivered,
-        repository=payload.repo,
-        message="New git committed",
+        repository=res.get("repository", payload.repo),
+        message="New git committed and persisted to database",
     )
 
 
@@ -792,9 +1280,10 @@ async def universal_commit_notify(
 @router.post("/profile/{username}/poll")
 async def trigger_profile_poll(username: str | None = None) -> dict[str, Any]:
     """Manually triggers immediate polling of GitHub user profile activity and dispatches Discord alerts."""
+    from backend.src.gitpulse.services.activity_service import resolve_effective_user
     from backend.src.gitpulse.services.profile_monitor import ProfileMonitorService
 
-    target_user = username or settings.GITHUB_TARGET_USER or "mohammedrehan143"
+    target_user = username or settings.GITHUB_TARGET_USER or resolve_effective_user()
     monitor = ProfileMonitorService(username=target_user)
     count = await monitor.poll_and_notify()
     return {

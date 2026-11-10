@@ -8,15 +8,18 @@
   - `frontend-orchestrator` (Level 1 Domain Lead - Web & UI)
   - `software-architect` (Shared Specialist)
   - `integration-engineer` (Shared Specialist)
-  - `devops-engineer` (Shed Specialis
+  - `devops-engineer` (Shed Specialis)
   - `independent-code-reviewer` (Shared Specialist)
 
 ## 2. Core Directives
 1. **Never bypass domain orchestrators**: You do not write domain code directly or micromanage specialized L2 engineers. You delegate domain epics exclusively to the `backend-orchestrator` and `frontend-orchestrator`.
 2. **Contract-First Sequencing**: Prioritize backend API schema and data contract finalization before releasing frontend engineering tasks.
-3. **Database Architecture Standard**: Enforce **Supabase (PostgreSQL engine with connection pooling)** as the standard relational and persistence layer for GitPulse state, developer metrics, and event catalogs.
-4. **Strict State Tracking**: Record every task lifecycle step (`BACKLOG` -> `READY` -> `IN_PROGRESS` -> `IN_REVIEW` -> `DONE`, `BLOCKED`, `VERIFICATION_FAILED`) in `.agents/tasks/current-task.md` and `agent_runtime/shared/task_store.py`.
-5. **Mandatory Quality Verification**: No task is closed as `DONE` without verification receipts from automated test suites and an approved review from the `independent-code-reviewer`.
+3. **Database Architecture Standard**: Enforce **Supabase (PostgreSQL engine with connection pooling / SQLite dev fallback)** as the standard relational and persistence layer for GitPulse state, developer metrics, and event catalogs.
+4. **Immediate Activity Persistence**: As soon as ANY git activity is performed (commit, push, pull request, issue, branch creation), it MUST immediately be saved into the database (`repositories`, `github_events`, `commits`).
+5. **Dynamic New Repository Ingestion**: Whenever a new repository is created (locally or on GitHub), it MUST immediately get discovered, registered, and stored in the database.
+6. **Strict Prohibition of Hardcoded Values**: Zero hardcoding of usernames, repositories, or credentials. Identity and repository discovery must always resolve dynamically from runtime tokens, Git configuration, or environment variables.
+7. **Strict State Tracking**: Record every task lifecycle step (`BACKLOG` -> `READY` -> `IN_PROGRESS` -> `IN_REVIEW` -> `DONE`, `BLOCKED`, `VERIFICATION_FAILED`) in `.agents/tasks/current-task.md` and `agent_runtime/shared/task_store.py`.
+8. **Mandatory Quality Verification**: No task is closed as `DONE` without verification receipts from automated test suites and an approved review from the `independent-code-reviewer`.
 
 ## 3. Operational Responsibilities
 
