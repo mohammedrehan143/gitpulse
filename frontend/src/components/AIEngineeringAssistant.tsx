@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
 import {
+  Brain,
+  Sparkles,
+  Send,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+  Activity,
+  Users,
+  Flame,
+} from 'lucide-react';
+import {
   askAIEngineeringAssistant,
   fetchRepositoryAIOverview,
   fetchTeamAIReport,
@@ -92,35 +104,89 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl text-slate-100">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-              AI
-            </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+    <div
+      style={{
+        backgroundColor: '#121212',
+        border: '1px solid #27272a',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6)',
+        color: '#f8fafc',
+        marginBottom: '2rem',
+      }}
+    >
+      {/* Header Container */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          paddingBottom: '1.25rem',
+          borderBottom: '1px solid #27272a',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+            }}
+          >
+            <Brain size={22} color="#ffffff" />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>
                 Engineering Intelligence Assistant
-                <span className="text-xs font-mono font-medium bg-indigo-950 text-indigo-300 border border-indigo-700/50 px-2 py-0.5 rounded-full">
-                  Groq LLM + Strict Grounding
-                </span>
               </h2>
-              <p className="text-sm text-slate-400">
-                Natural-language Q&A and analytics grounded strictly in database facts (no hallucination).
-              </p>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  backgroundColor: '#1e1b4b',
+                  color: '#a5b4fc',
+                  border: '1px solid #4338ca',
+                  borderRadius: '20px',
+                  padding: '2px 8px',
+                }}
+              >
+                Groq LLM + Strict Grounding
+              </span>
             </div>
+            <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+              Natural-language Q&A and velocity insights grounded strictly in database records (zero hallucination).
+            </p>
           </div>
         </div>
 
         {/* Target Repository Selector */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Context Repo:</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label style={{ fontSize: '12px', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase' }}>
+            Context Repo:
+          </label>
           <select
             value={targetRepo}
             onChange={(e) => setTargetRepo(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            style={{
+              backgroundColor: '#18181b',
+              border: '1px solid #3f3f46',
+              color: '#f8fafc',
+              fontSize: '13px',
+              fontWeight: 500,
+              borderRadius: '6px',
+              padding: '6px 12px',
+              outline: 'none',
+              cursor: 'pointer',
+            }}
           >
             <option value="">All Monitored Repositories</option>
             {availableRepos.map((r) => (
@@ -132,71 +198,165 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-800 mt-4 gap-6">
+      {/* Tabs Row */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          padding: '1rem 0',
+          borderBottom: '1px solid #27272a',
+          flexWrap: 'wrap',
+        }}
+      >
         <button
           onClick={() => setActiveTab('assistant')}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'assistant'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
+          style={{
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: 600,
+            borderRadius: '6px',
+            border: activeTab === 'assistant' ? '1px solid #6366f1' : '1px solid #27272a',
+            backgroundColor: activeTab === 'assistant' ? '#4f46e5' : '#18181b',
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
+          }}
         >
+          <Sparkles size={15} />
           Engineering Assistant Q&A
         </button>
+
         <button
           onClick={() => {
             setActiveTab('repo_health');
             if (!repoResult && targetRepo) handleFetchRepoHealth();
           }}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'repo_health'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
+          style={{
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: 600,
+            borderRadius: '6px',
+            border: activeTab === 'repo_health' ? '1px solid #6366f1' : '1px solid #27272a',
+            backgroundColor: activeTab === 'repo_health' ? '#4f46e5' : '#18181b',
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
+          }}
         >
+          <Activity size={15} />
           Repository Health Intelligence
         </button>
+
         <button
           onClick={() => {
             setActiveTab('team_report');
             if (!teamResult && targetRepo) handleFetchTeamReport();
           }}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'team_report'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
+          style={{
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: 600,
+            borderRadius: '6px',
+            border: activeTab === 'team_report' ? '1px solid #6366f1' : '1px solid #27272a',
+            backgroundColor: activeTab === 'team_report' ? '#4f46e5' : '#18181b',
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
+          }}
         >
+          <Users size={15} />
           Weekly Team Engineering Report
         </button>
       </div>
 
       {/* Error alert */}
       {error && (
-        <div className="mt-4 p-3 bg-rose-950/60 border border-rose-800/80 rounded-lg text-rose-300 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-xs text-rose-400 hover:text-rose-200">
+        <div
+          style={{
+            marginTop: '1rem',
+            padding: '10px 14px',
+            backgroundColor: '#450a0a',
+            border: '1px solid #991b1b',
+            borderRadius: '8px',
+            color: '#fca5a5',
+            fontSize: '13px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle size={16} />
+            {error}
+          </span>
+          <button
+            onClick={() => setError(null)}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: '#fca5a5',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 600,
+            }}
+          >
             Dismiss
           </button>
         </div>
       )}
 
-      {/* TAB 1: Natural Language Assistant */}
+      {/* TAB 1: Natural Language Assistant Q&A */}
       {activeTab === 'assistant' && (
-        <div className="mt-6 space-y-6">
-          {/* Quick preset chips */}
+        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Quick preset question chips */}
           <div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#a1a1aa',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'block',
+                marginBottom: '8px',
+              }}
+            >
               Suggested Questions:
             </span>
-            <div className="flex flex-wrap gap-2">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {presetQuestions.map((q) => (
                 <button
                   key={q}
                   onClick={() => handleSendQuestion(q)}
                   disabled={loading}
-                  className="text-xs bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-full transition-all disabled:opacity-50"
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    backgroundColor: '#18181b',
+                    border: '1px solid #3f3f46',
+                    color: '#e2e8f0',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    cursor: loading ? 'wait' : 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#27272a';
+                    e.currentTarget.style.borderColor = '#6366f1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#18181b';
+                    e.currentTarget.style.borderColor = '#3f3f46';
+                  }}
                 >
                   {q}
                 </button>
@@ -204,8 +364,8 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
             </div>
           </div>
 
-          {/* Input Box */}
-          <div className="flex gap-2">
+          {/* Input Box and Submit */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <input
               type="text"
               value={question}
@@ -213,59 +373,158 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
               onKeyDown={(e) => e.key === 'Enter' && handleSendQuestion()}
               placeholder="Ask anything about commit velocity, pull requests, inactive repos, or contributors..."
               disabled={loading}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              style={{
+                flex: 1,
+                backgroundColor: '#09090b',
+                border: '1px solid #3f3f46',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                fontSize: '14px',
+                color: '#ffffff',
+                outline: 'none',
+              }}
             />
             <button
               onClick={() => handleSendQuestion()}
               disabled={loading || !question.trim()}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-all shadow-md flex items-center gap-2"
+              style={{
+                backgroundColor: loading || !question.trim() ? '#27272a' : '#4f46e5',
+                color: loading || !question.trim() ? '#71717a' : '#ffffff',
+                fontWeight: 600,
+                fontSize: '13px',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: loading || !question.trim() ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.15s ease',
+                boxShadow: loading || !question.trim() ? 'none' : '0 4px 12px rgba(79, 70, 229, 0.4)',
+              }}
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <RefreshCw size={15} className="animate-spin" />
                   Thinking...
                 </>
               ) : (
-                'Ask Assistant'
+                <>
+                  <Send size={15} />
+                  Ask Assistant
+                </>
               )}
             </button>
           </div>
 
-          {/* Chat Result Display */}
+          {/* Chat Result Box */}
           {chatResult && (
-            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5 space-y-4 mt-6">
-              <div className="flex items-center justify-between text-xs pb-3 border-b border-slate-800/80">
-                <span className="font-semibold text-slate-300">
-                  Q: <span className="text-slate-100 font-normal">"{chatResult.question}"</span>
+            <div
+              style={{
+                backgroundColor: '#18181b',
+                border: '1px solid #27272a',
+                borderRadius: '10px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                marginTop: '0.5rem',
+              }}
+            >
+              {/* Question & Source Banner */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '12px',
+                  paddingBottom: '10px',
+                  borderBottom: '1px solid #27272a',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}
+              >
+                <span style={{ fontWeight: 600, color: '#a1a1aa' }}>
+                  Question:{' '}
+                  <span style={{ color: '#ffffff', fontStyle: 'italic', fontWeight: 500 }}>
+                    "{chatResult.question}"
+                  </span>
                 </span>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-indigo-950 text-indigo-300 border border-indigo-800">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontFamily: 'monospace',
+                      fontWeight: 600,
+                      backgroundColor: chatResult.source === 'groq_llm' ? '#1e1b4b' : '#14532d',
+                      color: chatResult.source === 'groq_llm' ? '#a5b4fc' : '#86efac',
+                      border:
+                        chatResult.source === 'groq_llm'
+                          ? '1px solid #4338ca'
+                          : '1px solid #166534',
+                    }}
+                  >
                     Source: {chatResult.source === 'groq_llm' ? 'Groq LLM' : 'Grounded Rule Engine'}
                   </span>
-                  <span className="text-slate-500 text-[11px]">{chatResult.timeframe}</span>
+                  <span style={{ color: '#71717a', fontSize: '11px' }}>{chatResult.timeframe}</span>
                 </div>
               </div>
 
-              {/* Main Answer */}
-              <div className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
+              {/* Formatted Answer */}
+              <div
+                style={{
+                  fontSize: '14px',
+                  lineHeight: '1.65',
+                  color: '#f1f5f9',
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
                 {chatResult.answer}
               </div>
 
-              {/* Verified Database Facts */}
+              {/* Verified Facts Pills Container */}
               {Object.keys(chatResult.verified_facts || {}).length > 0 && (
-                <div className="bg-slate-900/90 border border-slate-800 rounded-lg p-3 text-xs space-y-2">
-                  <div className="font-semibold text-emerald-400 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <div
+                  style={{
+                    backgroundColor: '#09090b',
+                    border: '1px solid #27272a',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <ShieldCheck size={15} />
                     Verified Database Facts Grounding:
                   </div>
-                  <div className="flex flex-wrap gap-2 text-slate-300">
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {Object.entries(chatResult.verified_facts).map(([key, val]) => (
-                      <div key={key} className="bg-slate-800 border border-slate-700/60 px-2.5 py-1 rounded">
-                        <span className="text-slate-400">{key.replace(/_/g, ' ')}:</span>{' '}
-                        <span className="font-mono font-medium text-slate-200">
+                      <div
+                        key={key}
+                        style={{
+                          backgroundColor: '#18181b',
+                          border: '1px solid #3f3f46',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <span style={{ color: '#a1a1aa' }}>{key.replace(/_/g, ' ')}:</span>{' '}
+                        <span style={{ fontWeight: 600, color: '#ffffff', fontFamily: 'monospace' }}>
                           {typeof val === 'object' ? JSON.stringify(val) : String(val)}
                         </span>
                       </div>
@@ -274,24 +533,69 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
                 </div>
               )}
 
-              {/* AI Interpretations vs Missing Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-2">
-                {chatResult.ai_interpretations?.length > 0 && (
-                  <div className="bg-indigo-950/30 border border-indigo-900/40 rounded-lg p-3">
-                    <span className="font-semibold text-indigo-300 block mb-1">AI Interpretations:</span>
-                    <ul className="list-disc list-inside space-y-0.5 text-slate-400">
+              {/* Interpretations & Missing Telemetry */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  gap: '12px',
+                }}
+              >
+                {chatResult.ai_interpretations && chatResult.ai_interpretations.length > 0 && (
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(79, 70, 229, 0.08)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#a5b4fc',
+                        display: 'block',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      AI Interpretations:
+                    </span>
+                    <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#cbd5e1' }}>
                       {chatResult.ai_interpretations.map((item, idx) => (
-                        <li key={idx}>{item}</li>
+                        <li key={idx} style={{ marginBottom: '4px' }}>
+                          {item}
+                        </li>
                       ))}
                     </ul>
                   </div>
                 )}
-                {chatResult.missing_or_unavailable?.length > 0 && (
-                  <div className="bg-amber-950/20 border border-amber-900/30 rounded-lg p-3">
-                    <span className="font-semibold text-amber-300 block mb-1">Unavailable / Missing Telemetry:</span>
-                    <ul className="list-disc list-inside space-y-0.5 text-slate-400">
+
+                {chatResult.missing_or_unavailable && chatResult.missing_or_unavailable.length > 0 && (
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(217, 119, 6, 0.08)',
+                      border: '1px solid rgba(217, 119, 6, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#fcd34d',
+                        display: 'block',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      Missing or Unavailable Telemetry:
+                    </span>
+                    <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#cbd5e1' }}>
                       {chatResult.missing_or_unavailable.map((item, idx) => (
-                        <li key={idx}>{item}</li>
+                        <li key={idx} style={{ marginBottom: '4px' }}>
+                          {item}
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -304,69 +608,227 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
 
       {/* TAB 2: Repository Health Intelligence */}
       {activeTab === 'repo_health' && (
-        <div className="mt-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-300 font-medium">
-              Intelligence Assessment for <span className="text-indigo-400 font-mono">{targetRepo || 'all'}</span> (Last 30 Days)
+        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '10px',
+            }}
+          >
+            <span style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: 500 }}>
+              Telemetry Health Assessment for{' '}
+              <span style={{ color: '#818cf8', fontFamily: 'monospace', fontWeight: 700 }}>
+                {targetRepo || 'all'}
+              </span>{' '}
+              (Rolling 30-Day Window)
             </span>
             <button
               onClick={() => handleFetchRepoHealth(true)}
               disabled={loading}
-              className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1.5 rounded transition-all"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                backgroundColor: '#18181b',
+                border: '1px solid #3f3f46',
+                color: '#ffffff',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                cursor: loading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
             >
-              Force Refresh Analysis
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              Force Regenerate
             </button>
           </div>
 
           {repoResult && (
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Summary Card */}
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-slate-100">Health Summary</h3>
-                  <span className="text-xs font-mono bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded text-indigo-300">
+              <div
+                style={{
+                  backgroundColor: '#18181b',
+                  border: '1px solid #27272a',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>
+                    Health Assessment
+                  </h3>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontFamily: 'monospace',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: '#27272a',
+                      color: '#a5b4fc',
+                    }}
+                  >
                     Source: {repoResult.source}
                   </span>
                 </div>
-                <p className="text-sm text-slate-300">{repoResult.health_summary}</p>
-                <p className="text-xs text-slate-400">{repoResult.activity_analysis}</p>
+                <p style={{ fontSize: '14px', color: '#e2e8f0', lineHeight: 1.6, margin: '0 0 8px 0' }}>
+                  {repoResult.health_summary}
+                </p>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
+                  {repoResult.activity_analysis}
+                </p>
               </div>
 
-              {/* Verified Facts Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-slate-950/60 border border-slate-800/80 p-3 rounded-lg">
-                  <span className="text-xs text-slate-400 block">Total Commits (30d)</span>
-                  <span className="text-lg font-bold font-mono text-slate-100">{repoResult.verified_facts.total_commits}</span>
+              {/* Facts Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '12px',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '8px',
+                    padding: '14px',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>
+                    Total Commits (30d)
+                  </span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', fontFamily: 'monospace' }}>
+                    {repoResult.verified_facts.total_commits}
+                  </span>
                 </div>
-                <div className="bg-slate-950/60 border border-slate-800/80 p-3 rounded-lg">
-                  <span className="text-xs text-slate-400 block">Open Pull Requests</span>
-                  <span className="text-lg font-bold font-mono text-slate-100">{repoResult.verified_facts.open_prs_count}</span>
+
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '8px',
+                    padding: '14px',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>
+                    Open Pull Requests
+                  </span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', fontFamily: 'monospace' }}>
+                    {repoResult.verified_facts.open_prs_count}
+                  </span>
                 </div>
-                <div className="bg-slate-950/60 border border-slate-800/80 p-3 rounded-lg">
-                  <span className="text-xs text-slate-400 block">Avg PR Cycle Time</span>
-                  <span className="text-lg font-bold font-mono text-slate-100">{repoResult.verified_facts.avg_pr_cycle_time_hours} hrs</span>
+
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '8px',
+                    padding: '14px',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>
+                    Avg PR Cycle Time
+                  </span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', fontFamily: 'monospace' }}>
+                    {repoResult.verified_facts.avg_pr_cycle_time_hours} hrs
+                  </span>
                 </div>
-                <div className="bg-slate-950/60 border border-slate-800/80 p-3 rounded-lg">
-                  <span className="text-xs text-slate-400 block">Code Churn Rate</span>
-                  <span className="text-lg font-bold font-mono text-slate-100">{(repoResult.verified_facts.code_churn_rate * 100).toFixed(1)}%</span>
+
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '8px',
+                    padding: '14px',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>
+                    Code Churn Rate
+                  </span>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', fontFamily: 'monospace' }}>
+                    {(repoResult.verified_facts.code_churn_rate * 100).toFixed(1)}%
+                  </span>
                 </div>
               </div>
 
-              {/* Recommendations & Patterns */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-xl space-y-2">
-                  <h4 className="text-sm font-semibold text-emerald-400">Strategic Recommendations</h4>
-                  <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+              {/* Recommendations and Patterns */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  gap: '14px',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '10px',
+                    padding: '1rem',
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: '#10b981',
+                      margin: '0 0 10px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <CheckCircle2 size={15} />
+                    Strategic Recommendations
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#e2e8f0' }}>
                     {repoResult.strategic_recommendations.map((rec, i) => (
-                      <li key={i}>{rec}</li>
+                      <li key={i} style={{ marginBottom: '6px' }}>
+                        {rec}
+                      </li>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-xl space-y-2">
-                  <h4 className="text-sm font-semibold text-amber-400">Activity Patterns & Observations</h4>
-                  <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '10px',
+                    padding: '1rem',
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: '#f59e0b',
+                      margin: '0 0 10px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Flame size={15} />
+                    Activity Patterns & Observations
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#e2e8f0' }}>
                     {repoResult.unusual_patterns.map((pat, i) => (
-                      <li key={i}>{pat}</li>
+                      <li key={i} style={{ marginBottom: '6px' }}>
+                        {pat}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -378,42 +840,131 @@ export const AIEngineeringAssistant: React.FC<AIEngineeringAssistantProps> = ({
 
       {/* TAB 3: Weekly Team Engineering Report */}
       {activeTab === 'team_report' && (
-        <div className="mt-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-300 font-medium">
-              Weekly Report for <span className="text-indigo-400 font-mono">{targetRepo || 'all'}</span> (Last 7 Days)
+        <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '10px',
+            }}
+          >
+            <span style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: 500 }}>
+              Weekly Team Engineering Report for{' '}
+              <span style={{ color: '#818cf8', fontFamily: 'monospace', fontWeight: 700 }}>
+                {targetRepo || 'all'}
+              </span>{' '}
+              (Last 7 Days)
             </span>
             <button
               onClick={() => handleFetchTeamReport(true)}
               disabled={loading}
-              className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1.5 rounded transition-all"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                backgroundColor: '#18181b',
+                border: '1px solid #3f3f46',
+                color: '#ffffff',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                cursor: loading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
             >
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
               Regenerate Report
             </button>
           </div>
 
           {teamResult && (
-            <div className="space-y-4">
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5 space-y-3">
-                <h3 className="text-base font-bold text-slate-100">Weekly Executive Engineering Summary</h3>
-                <p className="text-sm text-slate-200 leading-relaxed">{teamResult.weekly_report}</p>
-                <p className="text-xs text-slate-400">{teamResult.contribution_distribution_analysis}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div
+                style={{
+                  backgroundColor: '#18181b',
+                  border: '1px solid #27272a',
+                  borderRadius: '10px',
+                  padding: '1.25rem',
+                }}
+              >
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px 0', color: '#ffffff' }}>
+                  Weekly Executive Engineering Summary
+                </h3>
+                <p style={{ fontSize: '14px', color: '#e2e8f0', lineHeight: 1.65, margin: '0 0 8px 0' }}>
+                  {teamResult.weekly_report}
+                </p>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
+                  {teamResult.contribution_distribution_analysis}
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-xl space-y-2">
-                  <h4 className="text-sm font-semibold text-rose-400">Review Bottlenecks</h4>
-                  <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  gap: '14px',
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '10px',
+                    padding: '1rem',
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: '#f87171',
+                      margin: '0 0 10px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <AlertCircle size={15} />
+                    Review Bottlenecks
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#e2e8f0' }}>
                     {teamResult.review_bottlenecks.map((b, i) => (
-                      <li key={i}>{b}</li>
+                      <li key={i} style={{ marginBottom: '6px' }}>
+                        {b}
+                      </li>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-slate-950/70 border border-slate-800 p-4 rounded-xl space-y-2">
-                  <h4 className="text-sm font-semibold text-indigo-400">Actionable Team Directives</h4>
-                  <ul className="list-disc list-inside text-xs text-slate-300 space-y-1">
+
+                <div
+                  style={{
+                    backgroundColor: '#18181b',
+                    border: '1px solid #27272a',
+                    borderRadius: '10px',
+                    padding: '1rem',
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: '#818cf8',
+                      margin: '0 0 10px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <ShieldCheck size={15} />
+                    Actionable Team Directives
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#e2e8f0' }}>
                     {teamResult.team_recommendations.map((rec, i) => (
-                      <li key={i}>{rec}</li>
+                      <li key={i} style={{ marginBottom: '6px' }}>
+                        {rec}
+                      </li>
                     ))}
                   </ul>
                 </div>
