@@ -193,10 +193,6 @@ class NotificationService:
         if not target_urls and self.webhook_url:
             target_urls.add(self.webhook_url)
 
-        if not target_urls:
-            logger.debug("Discord webhook URL not configured. Skipping git push alert.")
-            return False
-
         title, description, fields = _build_git_push_fields(
             repo_name=repo_name,
             pusher=pusher,
@@ -206,6 +202,18 @@ class NotificationService:
             sender=sender,
             repo_owner=repo_owner,
         )
+
+        if not target_urls:
+            logger.debug(
+                "No custom subscriber webhooks configured for %s; dispatching to default notification handler.",
+                repo_name,
+            )
+            return await self.send_discord_notification(
+                title=title,
+                description=description,
+                color=0x10B981,
+                fields=fields,
+            )
 
         delivered_any = False
         for url in target_urls:

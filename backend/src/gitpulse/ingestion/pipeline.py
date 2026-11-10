@@ -267,6 +267,7 @@ class DataIngestionPipeline:
                 raw_payload=pr,
             )
             session.add(rec)
+            existing_prs[gh_id] = rec
         return True, u_at, str(gh_id)
 
     async def _fetch_all_prs(
@@ -305,7 +306,7 @@ class DataIngestionPipeline:
                 repo = await self._get_or_create_repo(session, owner, repo_name)
                 checkpoint = await self._get_or_create_checkpoint(session, repo.id, "pull_requests")
 
-                gh_ids = [pr.get("id") for pr in raw_prs if pr.get("id")]
+                gh_ids = [int(pr.get("id")) for pr in raw_prs if pr.get("id")]
                 existing_prs = {}
                 if gh_ids:
                     stmt = select(PullRequestRecord).where(
@@ -315,7 +316,17 @@ class DataIngestionPipeline:
                     for r in res.scalars():
                         existing_prs[r.github_id] = r
 
+                seen_pr_ids: set[int] = set()
+                deduped_prs = []
                 for pr in raw_prs:
+                    p_id = int(pr.get("id") or 0)
+                    if p_id:
+                        if p_id in seen_pr_ids:
+                            continue
+                        seen_pr_ids.add(p_id)
+                    deduped_prs.append(pr)
+
+                for pr in deduped_prs:
                     try:
                         ok, u_at, gid = self._process_single_pr(pr, repo.id, existing_prs, session)
                         if ok:
@@ -399,6 +410,7 @@ class DataIngestionPipeline:
                 raw_payload=iss,
             )
             session.add(rec)
+            existing_issues[gh_id] = rec
         return True, u_at, str(gh_id)
 
     async def _fetch_all_issues(
@@ -417,6 +429,32 @@ class DataIngestionPipeline:
         if not raw_issues and not since_param:
             raw_issues = await self.client.fetch_synthetic_issues(owner, repo_name)
         return raw_issues
+
+    @staticmethod
+    def _dedupe_raw_issues(raw_issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        seen_issue_ids: set[int] = set()
+        deduped = []
+        for iss in raw_issues:
+            i_id = int(iss.get("id") or 0)
+            if i_id:
+                if i_id in seen_issue_ids:
+                    continue
+                seen_issue_ids.add(i_id)
+            deduped.append(iss)
+        return deduped
+
+    @staticmethod
+    async def _load_existing_issues(
+        session, raw_issues: list[dict[str, Any]]
+    ) -> dict[int, IssueRecord]:
+        gh_ids = [int(iss.get("id")) for iss in raw_issues if iss.get("id")]
+        existing_issues = {}
+        if gh_ids:
+            stmt = select(IssueRecord).where(IssueRecord.github_id.in_(gh_ids))
+            res = await session.execute(stmt)
+            for r in res.scalars():
+                existing_issues[r.github_id] = r
+        return existing_issues
 
     async def ingest_issues(
         self,
@@ -442,17 +480,10 @@ class DataIngestionPipeline:
         async with AsyncSessionLocal() as session:
             async with session.begin():
                 repo = await self._get_or_create_repo(session, owner, repo_name)
-                gh_ids = [iss.get("id") for iss in raw_issues if iss.get("id")]
-                existing_issues = {}
-                if gh_ids:
-                    stmt = select(IssueRecord).where(
-                        IssueRecord.github_id.in_(gh_ids),
-                    )
-                    res = await session.execute(stmt)
-                    for r in res.scalars():
-                        existing_issues[r.github_id] = r
+                existing_issues = await self._load_existing_issues(session, raw_issues)
+                deduped_issues = self._dedupe_raw_issues(raw_issues)
 
-                for iss in raw_issues:
+                for iss in deduped_issues:
                     try:
                         ok, u_at, gid = self._process_single_issue(
                             iss, repo.id, existing_issues, session
@@ -680,18 +711,13 @@ class DataIngestionPipeline:
                 last_contributed_at=datetime.now(UTC),
             )
             session.add(rec)
+            existing_map[login] = rec
         return True
 
-    async def ingest_contributors(
-        self,
-        owner: str,
-        repo_name: str,
-        max_pages: int = 2,
-    ) -> dict[str, int]:
-        """Fetches and idempotently stores active contributors with contribution metrics."""
-        processed, failed = 0, 0
+    async def _fetch_all_contributors(
+        self, owner: str, repo_name: str, max_pages: int
+    ) -> list[dict[str, Any]]:
         raw_contribs: list[dict[str, Any]] = []
-
         for p in range(1, max_pages + 1):
             page_contribs = await self.client.fetch_repository_contributors(
                 owner, repo_name, page=p, per_page=100
@@ -701,25 +727,58 @@ class DataIngestionPipeline:
             raw_contribs.extend(page_contribs)
             if len(page_contribs) < 100:
                 break
-
         if not raw_contribs:
             raw_contribs = await self.client.fetch_synthetic_contributors(owner, repo_name)
+        return raw_contribs
+
+    @staticmethod
+    def _dedupe_raw_contributors(raw_contribs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        seen_logins: set[str] = set()
+        deduped = []
+        for contrib in raw_contribs:
+            c_login = str(contrib.get("login") or "").strip()
+            if c_login:
+                if c_login in seen_logins:
+                    continue
+                seen_logins.add(c_login)
+            deduped.append(contrib)
+        return deduped
+
+    @staticmethod
+    async def _load_existing_contributors(
+        session, repo_id: int, raw_contribs: list[dict[str, Any]]
+    ) -> dict[str, ContributorRecord]:
+        logins = [str(c.get("login") or "").strip() for c in raw_contribs if c.get("login")]
+        existing_map = {}
+        if logins:
+            stmt = select(ContributorRecord).where(
+                ContributorRecord.repo_id == repo_id,
+                ContributorRecord.login.in_(logins),
+            )
+            res = await session.execute(stmt)
+            for r in res.scalars():
+                existing_map[r.login] = r
+        return existing_map
+
+    async def ingest_contributors(
+        self,
+        owner: str,
+        repo_name: str,
+        max_pages: int = 2,
+    ) -> dict[str, int]:
+        """Fetches and idempotently stores active contributors with contribution metrics."""
+        processed, failed = 0, 0
+        raw_contribs = await self._fetch_all_contributors(owner, repo_name, max_pages)
 
         async with AsyncSessionLocal() as session:
             async with session.begin():
                 repo = await self._get_or_create_repo(session, owner, repo_name)
-                logins = [c.get("login") for c in raw_contribs if c.get("login")]
-                existing_map = {}
-                if logins:
-                    stmt = select(ContributorRecord).where(
-                        ContributorRecord.repo_id == repo.id,
-                        ContributorRecord.login.in_(logins),
-                    )
-                    res = await session.execute(stmt)
-                    for r in res.scalars():
-                        existing_map[r.login] = r
+                existing_map = await self._load_existing_contributors(
+                    session, repo.id, raw_contribs
+                )
+                deduped_contribs = self._dedupe_raw_contributors(raw_contribs)
 
-                for contrib in raw_contribs:
+                for contrib in deduped_contribs:
                     try:
                         ok = await self._upsert_contributor(contrib, repo.id, existing_map, session)
                         if ok:
@@ -780,11 +839,13 @@ class DataIngestionPipeline:
                             continue
 
                         earliest_rev_dt = pr_rec.first_reviewed_at
+                        seen_rev_ids: set[int] = set()
 
                         for rev in raw_reviews:
                             rev_id = int(rev.get("id") or 0)
-                            if not rev_id:
+                            if not rev_id or rev_id in seen_rev_ids:
                                 continue
+                            seen_rev_ids.add(rev_id)
 
                             rev_user = rev.get("user") or {}
                             reviewer = str(rev_user.get("login") or "reviewer")[:100]
